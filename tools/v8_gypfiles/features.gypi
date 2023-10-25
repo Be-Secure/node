@@ -72,7 +72,21 @@
         'v8_enable_etw_stack_walking': 1,
       }, {
         'v8_enable_etw_stack_walking': 0,
-      }]
+      }],
+      ['OS=="linux"', {
+        # Sets -dV8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION.
+        #
+        # This flag speeds up the performance of fork/execve on Linux systems for
+        # embedders which use it (like Node.js). It works by marking the pages that
+        # V8 allocates as MADV_DONTFORK. Without MADV_DONTFORK, the Linux kernel
+        # spends a long time manipulating page mappings on fork and exec which the
+        # child process doesn't generally need to access.
+        #
+        # See v8:7381 for more details.
+        'v8_enable_private_mapping_fork_optimization': 1,
+      }, {
+        'v8_enable_private_mapping_fork_optimization': 0,
+      }],
     ],
     'is_debug%': 0,
 
@@ -111,6 +125,9 @@
     # Sets -dENABLE_HUGEPAGE
     'v8_enable_hugepage%': 0,
 
+    # Sets -dENABLE_VTUNE_JIT_INTERFACE.
+    'v8_enable_vtunejit%': 0,
+
     # Currently set for node by common.gypi, avoiding default because of gyp file bug.
     # Should be turned on only for debugging.
     #'v8_enable_handle_zapping%': 0,
@@ -129,6 +146,9 @@
     # This option will generate extra code in the snapshot to increment counters,
     # as per the --native-code-counters flag.
     'v8_enable_snapshot_native_code_counters%': 0,
+
+    # Use pre-generated static root pointer values from static-roots.h.
+    'v8_enable_static_roots%': 0,
 
     # Enable code-generation-time checking of types in the CodeStubAssembler.
     'v8_enable_verify_csa%': 0,
@@ -164,10 +184,6 @@
 
     # Enables various testing features.
     'v8_enable_test_features%': 0,
-
-    # Enable the Maglev compiler.
-    # Sets -dV8_ENABLE_MAGLEV
-    'v8_enable_maglev%': 0,
 
     # With post mortem support enabled, metadata is embedded into libv8 that
     # describes various parameters of the VM for use by debuggers. See
@@ -213,7 +229,7 @@
     'v8_enable_regexp_interpreter_threaded_dispatch%': 1,
 
     # Disable all snapshot compression.
-    'v8_enable_snapshot_compression%': 1,
+    'v8_enable_snapshot_compression%': 0,
 
     # Enable control-flow integrity features, such as pointer authentication
     # for ARM64.
@@ -264,6 +280,10 @@
     # Sets -DV8_USE_ZLIB
     'v8_use_zlib%': 1,
 
+    # Whether custom embedder snapshots may extend (= allocate new objects in)
+    # ReadOnlySpace.
+    'v8_enable_extensible_ro_snapshot%': 1,
+
     # Variables from v8.gni
 
     # Enable ECMAScript Internationalization API. Enabling this feature will
@@ -275,9 +295,19 @@
     # Sets --DV8_LITE_MODE.
     'v8_enable_lite_mode%': 0,
 
+    # Enable the Turbofan compiler.
+    # Sets -dV8_ENABLE_TURBOFAN
+    'v8_enable_turbofan%': 1,
+
+    # Enable the Maglev compiler.
+    # Sets -dV8_ENABLE_MAGLEV
+    'v8_enable_maglev%': 0,
+
     # Include support for WebAssembly. If disabled, the 'WebAssembly' global
     # will not be available, and embedder APIs to generate WebAssembly modules
-    # will fail.
+    # will fail. Also, asm.js will not be translated to WebAssembly and will be
+    # executed as standard JavaScript instead.
+    # Sets -dV8_ENABLE_WEBASSEMBLY.
     'v8_enable_webassembly%': 1,
 
     # Enable advanced BigInt algorithms, costing about 10-30 KiB binary size
@@ -307,6 +337,12 @@
       }],
       ['v8_enable_hugepage==1', {
         'defines': ['ENABLE_HUGEPAGE',],
+      }],
+      ['v8_enable_private_mapping_fork_optimization==1', {
+        'defines': ['V8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION'],
+      }],
+      ['v8_enable_vtunejit==1', {
+        'defines': ['ENABLE_VTUNE_JIT_INTERFACE',],
       }],
       ['v8_enable_pointer_compression==1', {
         'defines': [
@@ -422,14 +458,23 @@
       ['v8_enable_cet_shadow_stack==1', {
         'defines': ['V8_ENABLE_CET_SHADOW_STACK',],
       }],
+      ['v8_enable_static_roots==1', {
+        'defines': ['V8_STATIC_ROOTS',],
+      }],
       ['v8_use_zlib==1', {
         'defines': ['V8_USE_ZLIB',],
+      }],
+      ['v8_enable_extensible_ro_snapshot==1', {
+        'defines': ['V8_ENABLE_EXTENSIBLE_RO_SNAPSHOT',],
       }],
       ['v8_enable_precise_zone_stats==1', {
         'defines': ['V8_ENABLE_PRECISE_ZONE_STATS',],
       }],
       ['v8_enable_maglev==1', {
         'defines': ['V8_ENABLE_MAGLEV',],
+      }],
+      ['v8_enable_turbofan==1', {
+        'defines': ['V8_ENABLE_TURBOFAN',],
       }],
       ['v8_enable_swiss_name_dictionary==1', {
         'defines': ['V8_ENABLE_SWISS_NAME_DICTIONARY',],

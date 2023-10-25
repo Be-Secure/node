@@ -43,9 +43,9 @@ class LazyCompileDispatcher::JobTask : public v8::JobTask {
   size_t GetMaxConcurrency(size_t worker_count) const final {
     size_t n = lazy_compile_dispatcher_->num_jobs_for_background_.load(
         std::memory_order_relaxed);
-    if (FLAG_lazy_compile_dispatcher_max_threads == 0) return n;
+    if (v8_flags.lazy_compile_dispatcher_max_threads == 0) return n;
     return std::min(
-        n, static_cast<size_t>(FLAG_lazy_compile_dispatcher_max_threads));
+        n, static_cast<size_t>(v8_flags.lazy_compile_dispatcher_max_threads));
   }
 
  private:
@@ -69,7 +69,7 @@ LazyCompileDispatcher::LazyCompileDispatcher(Isolate* isolate,
           reinterpret_cast<v8::Isolate*>(isolate))),
       platform_(platform),
       max_stack_size_(max_stack_size),
-      trace_compiler_dispatcher_(FLAG_trace_compiler_dispatcher),
+      trace_compiler_dispatcher_(v8_flags.trace_compiler_dispatcher),
       idle_task_manager_(new CancelableTaskManager()),
       idle_task_scheduled_(false),
       num_jobs_for_background_(0),
@@ -94,43 +94,44 @@ namespace {
 void SetUncompiledDataJobPointer(LocalIsolate* isolate,
                                  Handle<SharedFunctionInfo> shared_info,
                                  Address job_address) {
-  UncompiledData uncompiled_data = shared_info->uncompiled_data();
-  switch (uncompiled_data.map(isolate).instance_type()) {
+  Tagged<UncompiledData> uncompiled_data = shared_info->uncompiled_data();
+  switch (uncompiled_data->map(isolate)->instance_type()) {
     // The easy cases -- we already have a job slot, so can write into it and
     // return.
     case UNCOMPILED_DATA_WITH_PREPARSE_DATA_AND_JOB_TYPE:
       UncompiledDataWithPreparseDataAndJob::cast(uncompiled_data)
-          .set_job(job_address);
+          ->set_job(job_address);
       break;
     case UNCOMPILED_DATA_WITHOUT_PREPARSE_DATA_WITH_JOB_TYPE:
       UncompiledDataWithoutPreparseDataWithJob::cast(uncompiled_data)
-          .set_job(job_address);
+          ->set_job(job_address);
       break;
 
     // Otherwise, we'll have to allocate a new UncompiledData (with or without
     // preparse data as appropriate), set the job pointer on that, and update
     // the SharedFunctionInfo to use the new UncompiledData
     case UNCOMPILED_DATA_WITH_PREPARSE_DATA_TYPE: {
-      Handle<String> inferred_name(uncompiled_data.inferred_name(), isolate);
+      Handle<String> inferred_name(uncompiled_data->inferred_name(), isolate);
       Handle<PreparseData> preparse_data(
-          UncompiledDataWithPreparseData::cast(uncompiled_data).preparse_data(),
+          UncompiledDataWithPreparseData::cast(uncompiled_data)
+              ->preparse_data(),
           isolate);
       Handle<UncompiledDataWithPreparseDataAndJob> new_uncompiled_data =
           isolate->factory()->NewUncompiledDataWithPreparseDataAndJob(
-              inferred_name, uncompiled_data.start_position(),
-              uncompiled_data.end_position(), preparse_data);
+              inferred_name, uncompiled_data->start_position(),
+              uncompiled_data->end_position(), preparse_data);
 
       new_uncompiled_data->set_job(job_address);
       shared_info->set_uncompiled_data(*new_uncompiled_data);
       break;
     }
     case UNCOMPILED_DATA_WITHOUT_PREPARSE_DATA_TYPE: {
-      DCHECK(uncompiled_data.IsUncompiledDataWithoutPreparseData());
-      Handle<String> inferred_name(uncompiled_data.inferred_name(), isolate);
+      DCHECK(IsUncompiledDataWithoutPreparseData(uncompiled_data));
+      Handle<String> inferred_name(uncompiled_data->inferred_name(), isolate);
       Handle<UncompiledDataWithoutPreparseDataWithJob> new_uncompiled_data =
           isolate->factory()->NewUncompiledDataWithoutPreparseDataWithJob(
-              inferred_name, uncompiled_data.start_position(),
-              uncompiled_data.end_position());
+              inferred_name, uncompiled_data->start_position(),
+              uncompiled_data->end_position());
 
       new_uncompiled_data->set_job(job_address);
       shared_info->set_uncompiled_data(*new_uncompiled_data);
@@ -165,7 +166,7 @@ void LazyCompileDispatcher::Enqueue(
     base::MutexGuard lock(&mutex_);
     if (trace_compiler_dispatcher_) {
       PrintF("LazyCompileDispatcher: enqueued job for ");
-      shared_info->ShortPrint();
+      ShortPrint(*shared_info);
       PrintF("\n");
     }
 
@@ -182,13 +183,13 @@ void LazyCompileDispatcher::Enqueue(
 bool LazyCompileDispatcher::IsEnqueued(
     Handle<SharedFunctionInfo> function) const {
   Job* job = nullptr;
-  Object function_data = function->function_data(kAcquireLoad);
-  if (function_data.IsUncompiledDataWithPreparseDataAndJob()) {
+  Tagged<Object> function_data = function->function_data(kAcquireLoad);
+  if (IsUncompiledDataWithPreparseDataAndJob(function_data)) {
     job = reinterpret_cast<Job*>(
-        UncompiledDataWithPreparseDataAndJob::cast(function_data).job());
-  } else if (function_data.IsUncompiledDataWithoutPreparseDataWithJob()) {
+        UncompiledDataWithPreparseDataAndJob::cast(function_data)->job());
+  } else if (IsUncompiledDataWithoutPreparseDataWithJob(function_data)) {
     job = reinterpret_cast<Job*>(
-        UncompiledDataWithoutPreparseDataWithJob::cast(function_data).job());
+        UncompiledDataWithoutPreparseDataWithJob::cast(function_data)->job());
   }
   return job != nullptr;
 }
@@ -249,7 +250,7 @@ bool LazyCompileDispatcher::FinishNow(Handle<SharedFunctionInfo> function) {
   RCS_SCOPE(isolate_, RuntimeCallCounterId::kCompileFinishNowOnDispatcher);
   if (trace_compiler_dispatcher_) {
     PrintF("LazyCompileDispatcher: finishing ");
-    function->ShortPrint();
+    ShortPrint(*function);
     PrintF(" now\n");
   }
 
@@ -297,7 +298,7 @@ bool LazyCompileDispatcher::FinishNow(Handle<SharedFunctionInfo> function) {
 void LazyCompileDispatcher::AbortJob(Handle<SharedFunctionInfo> shared_info) {
   if (trace_compiler_dispatcher_) {
     PrintF("LazyCompileDispatcher: aborting job for ");
-    shared_info->ShortPrint();
+    ShortPrint(*shared_info);
     PrintF("\n");
   }
   base::LockGuard<base::Mutex> lock(&mutex_);
@@ -368,13 +369,13 @@ void LazyCompileDispatcher::AbortAll() {
 
 LazyCompileDispatcher::Job* LazyCompileDispatcher::GetJobFor(
     Handle<SharedFunctionInfo> shared, const base::MutexGuard&) const {
-  Object function_data = shared->function_data(kAcquireLoad);
-  if (function_data.IsUncompiledDataWithPreparseDataAndJob()) {
+  Tagged<Object> function_data = shared->function_data(kAcquireLoad);
+  if (IsUncompiledDataWithPreparseDataAndJob(function_data)) {
     return reinterpret_cast<Job*>(
-        UncompiledDataWithPreparseDataAndJob::cast(function_data).job());
-  } else if (function_data.IsUncompiledDataWithoutPreparseDataWithJob()) {
+        UncompiledDataWithPreparseDataAndJob::cast(function_data)->job());
+  } else if (IsUncompiledDataWithoutPreparseDataWithJob(function_data)) {
     return reinterpret_cast<Job*>(
-        UncompiledDataWithoutPreparseDataWithJob::cast(function_data).job());
+        UncompiledDataWithoutPreparseDataWithJob::cast(function_data)->job());
   }
   return nullptr;
 }

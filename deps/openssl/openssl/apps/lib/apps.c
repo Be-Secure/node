@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -308,6 +308,7 @@ static char *app_get_pass(const char *arg, int keepbio)
             pwdbio = BIO_push(btmp, pwdbio);
 #endif
         } else if (strcmp(arg, "stdin") == 0) {
+            unbuffer(stdin);
             pwdbio = dup_bio_in(FORMAT_TEXT);
             if (pwdbio == NULL) {
                 BIO_printf(bio_err, "Can't open BIO for stdin\n");
@@ -637,13 +638,13 @@ void *app_malloc(size_t sz, const char *what)
 char *next_item(char *opt) /* in list separated by comma and/or space */
 {
     /* advance to separator (comma or whitespace), if any */
-    while (*opt != ',' && !isspace(*opt) && *opt != '\0')
+    while (*opt != ',' && !isspace(_UC(*opt)) && *opt != '\0')
         opt++;
     if (*opt != '\0') {
         /* terminate current item */
         *opt++ = '\0';
         /* skip over any whitespace after separator */
-        while (isspace(*opt))
+        while (isspace(_UC(*opt)))
             opt++;
     }
     return *opt == '\0' ? NULL : opt; /* NULL indicates end of input */
@@ -1456,7 +1457,8 @@ static IMPLEMENT_LHASH_HASH_FN(index_name, OPENSSL_CSTRING)
 static IMPLEMENT_LHASH_COMP_FN(index_name, OPENSSL_CSTRING)
 #undef BSIZE
 #define BSIZE 256
-BIGNUM *load_serial(const char *serialfile, int create, ASN1_INTEGER **retai)
+BIGNUM *load_serial(const char *serialfile, int *exists, int create,
+                    ASN1_INTEGER **retai)
 {
     BIO *in = NULL;
     BIGNUM *ret = NULL;
@@ -1468,6 +1470,8 @@ BIGNUM *load_serial(const char *serialfile, int create, ASN1_INTEGER **retai)
         goto err;
 
     in = BIO_new_file(serialfile, "r");
+    if (exists != NULL)
+        *exists = in != NULL;
     if (in == NULL) {
         if (!create) {
             perror(serialfile);
@@ -1475,8 +1479,14 @@ BIGNUM *load_serial(const char *serialfile, int create, ASN1_INTEGER **retai)
         }
         ERR_clear_error();
         ret = BN_new();
-        if (ret == NULL || !rand_serial(ret, ai))
+        if (ret == NULL) {
             BIO_printf(bio_err, "Out of memory\n");
+        } else if (!rand_serial(ret, ai)) {
+            BIO_printf(bio_err, "Error creating random number to store in %s\n",
+                       serialfile);
+            BN_free(ret);
+            ret = NULL;
+        }
     } else {
         if (!a2i_ASN1_INTEGER(in, ai, buf, 1024)) {
             BIO_printf(bio_err, "Unable to load number from %s\n",
@@ -1490,12 +1500,13 @@ BIGNUM *load_serial(const char *serialfile, int create, ASN1_INTEGER **retai)
         }
     }
 
-    if (ret && retai) {
+    if (ret != NULL && retai != NULL) {
         *retai = ai;
         ai = NULL;
     }
  err:
-    ERR_print_errors(bio_err);
+    if (ret == NULL)
+        ERR_print_errors(bio_err);
     BIO_free(in);
     ASN1_INTEGER_free(ai);
     return ret;
@@ -1668,7 +1679,10 @@ CA_DB *load_index(const char *dbfile, DB_ATTR *db_attr)
         char *p = NCONF_get_string(dbattr_conf, NULL, "unique_subject");
         if (p) {
             retdb->attributes.unique_subject = parse_yesno(p, 1);
+        } else {
+            ERR_clear_error();
         }
+
     }
 
     retdb->dbfname = OPENSSL_strdup(dbfile);
@@ -1997,7 +2011,8 @@ int bio_to_mem(unsigned char **out, int maxlen, BIO *in)
             BIO_free(mem);
             return -1;
         }
-        maxlen -= len;
+        if (maxlen != -1)
+            maxlen -= len;
 
         if (maxlen == 0)
             break;
@@ -2458,9 +2473,15 @@ BIO *app_http_tls_cb(BIO *bio, void *arg, int connect, int detail)
     APP_HTTP_TLS_INFO *info = (APP_HTTP_TLS_INFO *)arg;
     SSL_CTX *ssl_ctx = info->ssl_ctx;
 
-    if (connect && detail) { /* connecting with TLS */
+    if (ssl_ctx == NULL) /* not using TLS */
+        return bio;
+    if (connect) {
         SSL *ssl;
         BIO *sbio = NULL;
+        X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
+        X509_VERIFY_PARAM *vpm = X509_STORE_get0_param(ts);
+        const char *host = vpm == NULL ? NULL :
+            X509_VERIFY_PARAM_get0_host(vpm, 0 /* first hostname */);
 
         /* adapt after fixing callback design flaw, see #17088 */
         if ((info->use_proxy
@@ -2475,8 +2496,8 @@ BIO *app_http_tls_cb(BIO *bio, void *arg, int connect, int detail)
             return NULL;
         }
 
-        /* adapt after fixing callback design flaw, see #17088 */
-        SSL_set_tlsext_host_name(ssl, info->server); /* not critical to do */
+        if (vpm != NULL)
+            SSL_set_tlsext_host_name(ssl, host /* may be NULL */);
 
         SSL_set_connect_state(ssl);
         BIO_set_ssl(sbio, ssl, BIO_CLOSE);
@@ -2536,6 +2557,11 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
     if (use_ssl && ssl_ctx == NULL) {
         ERR_raise_data(ERR_LIB_HTTP, ERR_R_PASSED_NULL_PARAMETER,
                        "missing SSL_CTX");
+        goto end;
+    }
+    if (!use_ssl && ssl_ctx != NULL) {
+        ERR_raise_data(ERR_LIB_HTTP, ERR_R_PASSED_INVALID_ARGUMENT,
+                       "SSL_CTX given but use_ssl == 0");
         goto end;
     }
 
@@ -2919,6 +2945,9 @@ BIO *dup_bio_out(int format)
                         BIO_NOCLOSE | (FMT_istext(format) ? BIO_FP_TEXT : 0));
     void *prefix = NULL;
 
+    if (b == NULL)
+        return NULL;
+
 #ifdef OPENSSL_SYS_VMS
     if (FMT_istext(format))
         b = BIO_push(BIO_new(BIO_f_linebuffer()), b);
@@ -2938,7 +2967,7 @@ BIO *dup_bio_err(int format)
     BIO *b = BIO_new_fp(stderr,
                         BIO_NOCLOSE | (FMT_istext(format) ? BIO_FP_TEXT : 0));
 #ifdef OPENSSL_SYS_VMS
-    if (FMT_istext(format))
+    if (b != NULL && FMT_istext(format))
         b = BIO_push(BIO_new(BIO_f_linebuffer()), b);
 #endif
     return b;
@@ -3358,14 +3387,6 @@ int opt_legacy_okay(void)
 {
     int provider_options = opt_provider_option_given();
     int libctx = app_get0_libctx() != NULL || app_get0_propq() != NULL;
-#ifndef OPENSSL_NO_ENGINE
-    ENGINE *e = ENGINE_get_first();
-
-    if (e != NULL) {
-        ENGINE_free(e);
-        return 1;
-    }
-#endif
     /*
      * Having a provider option specified or a custom library context or
      * property query, is a sure sign we're not using legacy.

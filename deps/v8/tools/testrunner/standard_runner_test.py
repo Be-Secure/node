@@ -18,16 +18,19 @@ with different test suite extensions and build configurations.
 # TODO(majeski): Add some tests for the fuzzers.
 
 from collections import deque
-import os
+from pathlib import Path
+
 import sys
 import unittest
-from os.path import dirname as up
 from mock import patch
 
-TOOLS_ROOT = up(up(os.path.abspath(__file__)))
-sys.path.append(TOOLS_ROOT)
+TOOLS_ROOT = Path(__file__).resolve().parent.parent
+sys.path.append(str(TOOLS_ROOT))
+
 from testrunner import standard_runner
 from testrunner import num_fuzzer
+from testrunner.testproc import base
+from testrunner.testproc import fuzzer
 from testrunner.utils.test_utils import (
     temp_base,
     TestRunnerTest,
@@ -123,11 +126,11 @@ class StandardRunnerTest(TestRunnerTest):
     result.has_returncode(1)
 
   def testGN(self):
-    """Test running only failing tests in two variants."""
-    result = self.run_tests('--gn',baseroot="testroot5")
+    """Test setup with legacy GN out dir."""
+    result = self.run_tests('--gn', baseroot="testroot5", outdir='out.gn')
     result.stdout_includes('>>> Latest GN build found: build')
     result.stdout_includes('Build found: ')
-    result.stdout_includes('v8_test_/out.gn/build')
+    result.stdout_includes('_v8_test/out.gn/build')
     result.has_returncode(2)
 
   def testMalformedJsonConfig(self):
@@ -161,6 +164,34 @@ class StandardRunnerTest(TestRunnerTest):
     # This is redundant to the command. Needs investigation.
     result.json_content_equals('expected_test_results1.json')
 
+  def testRDB(self):
+    with self.with_fake_rdb() as records:
+      # sweet/bananaflakes fails first time on stress but passes on default
+      def tag_dict(tags):
+        return {t['key']: t['value'] for t in tags}
+
+      self.run_tests(
+          '--variants=default,stress',
+          '--rerun-failures-count=2',
+          '--time',
+          'sweet',
+          baseroot='testroot2',
+          infra_staging=False,
+      )
+
+      self.assertEquals(len(records), 3)
+      self.assertEquals(records[0]['testId'], 'sweet/bananaflakes//stress')
+      self.assertEquals(tag_dict(records[0]['tags'])['run'], '1')
+      self.assertFalse(records[0]['expected'])
+
+      self.assertEquals(records[1]['testId'], 'sweet/bananaflakes//stress')
+      self.assertEquals(tag_dict(records[1]['tags'])['run'], '2')
+      self.assertTrue(records[1]['expected'])
+
+      self.assertEquals(records[2]['testId'], 'sweet/bananaflakes//default')
+      self.assertEquals(tag_dict(records[2]['tags'])['run'], '1')
+      self.assertTrue(records[2]['expected'])
+
   def testFlakeWithRerunAndJSON(self):
     """Test re-running a failing test and output to json."""
     result = self.run_tests(
@@ -191,28 +222,24 @@ class StandardRunnerTest(TestRunnerTest):
         '--variants=default',
         'sweet/bananas',
         config_overrides=dict(
-          dcheck_always_on=True, is_asan=True, is_cfi=True,
-          is_msan=True, is_tsan=True, is_ubsan_vptr=True, target_cpu='x86',
-          v8_enable_i18n_support=False, v8_target_cpu='x86',
-          v8_enable_verify_csa=False, v8_enable_lite_mode=False,
-          v8_enable_pointer_compression=False,
-          v8_enable_pointer_compression_shared_cage=False,
-          v8_enable_shared_ro_heap=False,
-          v8_enable_sandbox=False
-        )
-    )
-    expect_text = (
-        '>>> Autodetected:\n'
-        'asan\n'
-        'cfi_vptr\n'
-        'dcheck_always_on\n'
-        'msan\n'
-        'no_i18n\n'
-        'tsan\n'
-        'ubsan_vptr\n'
-        'webassembly\n'
-        '>>> Running tests for ia32.release')
-    result.stdout_includes(expect_text)
+            arch="ia32",
+            asan=True,
+            cfi=True,
+            dcheck_always_on=True,
+            has_webassembly=True,
+            msan=True,
+            target_cpu='x86',
+            tsan=True,
+            ubsan=True,
+            use_sanitizer=True,
+            v8_target_cpu='x86',
+        ))
+    result.stdout_includes('>>> Autodetected:')
+    result.stdout_includes(
+        'arch="ia32", asan, cfi, dcheck_always_on, has_webassembly, i18n, '
+        'msan, target_cpu="x86", tsan, ubsan, use_sanitizer, '
+        'v8_target_cpu="x86"')
+    result.stdout_includes('>>> Running tests for ia32.release')
     result.has_returncode(0)
     # TODO(machenbach): Test some more implications of the auto-detected
     # options, e.g. that the right env variables are set.
@@ -288,7 +315,7 @@ class StandardRunnerTest(TestRunnerTest):
 
   def testNoBuildConfig(self):
     """Test failing run when build config is not found."""
-    result = self.run_tests(baseroot='wrong_path')
+    result = self.run_tests(baseroot='wrong_path', with_build_config=False)
     result.stdout_includes('Failed to load build config')
     result.has_returncode(5)
 
@@ -321,7 +348,7 @@ class StandardRunnerTest(TestRunnerTest):
         '--variants=default',
         'sweet/bananas',
         infra_staging=False,
-        config_overrides=dict(v8_enable_verify_predictable=True),
+        config_overrides=dict(verify_predictable=True),
     )
     result.stdout_includes('1 tests ran')
     result.stdout_includes('sweet/bananas default: FAIL')
@@ -380,7 +407,7 @@ class StandardRunnerTest(TestRunnerTest):
         '--variants=default,stress',
         'sweet/bananas',
         'sweet/raspberries',
-        config_overrides=dict(is_asan=True),
+        config_overrides=dict(asan=True),
     )
     # Both tests are either marked as running in only default or only
     # slow variant.
@@ -511,17 +538,60 @@ class StandardRunnerTest(TestRunnerTest):
     result.has_returncode(0)
 
 
+class FakeTimeoutProc(base.TestProcObserver):
+  """Fake of the total-timeout observer that just stops after counting
+  "count" number of test or result events.
+  """
+  def __init__(self, count):
+    super(FakeTimeoutProc, self).__init__()
+    self._n = 0
+    self._count = count
+
+  def _on_next_test(self, test):
+    self.__on_event()
+
+  def _on_result_for(self, test, result):
+    self.__on_event()
+
+  def __on_event(self):
+    if self._n >= self._count:
+      self.stop()
+    self._n += 1
+
+
 class NumFuzzerTest(TestRunnerTest):
   def get_runner_class(self):
     return num_fuzzer.NumFuzzer
 
   def testNumFuzzer(self):
-    result = self.run_tests(
-      '--command-prefix', sys.executable,
-      '--outdir', 'out/build',
-    )
-    result.has_returncode(0)
-    result.stdout_includes('>>> Autodetected')
+    fuzz_flags = [
+      f'{flag}=1' for flag in self.get_runner_options()
+      if flag.startswith('--stress-')
+    ]
+    self.assertEqual(len(fuzz_flags), len(fuzzer.FUZZERS))
+    for fuzz_flag in fuzz_flags:
+      # The fake timeout observer above will stop after proessing the 10th
+      # test. This still executes an 11th. Each test causes a test- and a
+      # result event internally. We test both paths here.
+      for event_count in (19, 20):
+        with self.subTest(f'fuzz_flag={fuzz_flag} event_count={event_count}'):
+          with patch(
+              'testrunner.testproc.timeout.TimeoutProc.create',
+              lambda x: FakeTimeoutProc(event_count)):
+            result = self.run_tests(
+              '--command-prefix', sys.executable,
+              '--outdir', 'out/build',
+              '--variants=default',
+              '--fuzzer-random-seed=12345',
+              '--total-timeout-sec=60',
+              fuzz_flag,
+              '--progress=verbose',
+              'sweet/bananas',
+            )
+            result.has_returncode(0)
+            result.stdout_includes('>>> Autodetected')
+            result.stdout_includes('11 tests ran')
+
 
 class OtherTest(TestRunnerTest):
   def testStatusFilePresubmit(self):
@@ -529,7 +599,8 @@ class OtherTest(TestRunnerTest):
     with temp_base() as basedir:
       from testrunner.local import statusfile
       self.assertTrue(statusfile.PresubmitCheck(
-          os.path.join(basedir, 'test', 'sweet', 'sweet.status')))
+          basedir / 'test' / 'sweet' / 'sweet.status'))
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -10,7 +10,9 @@
 #include "src/base/platform/mutex.h"
 #include "src/base/vector.h"
 #include "src/common/globals.h"
+#include "src/objects/bytecode-array.h"
 #include "src/objects/code.h"
+#include "src/objects/instruction-stream.h"
 #include "src/objects/name.h"
 #include "src/objects/shared-function-info.h"
 #include "src/objects/string.h"
@@ -88,7 +90,10 @@ class LogEventListener {
   virtual void RegExpCodeCreateEvent(Handle<AbstractCode> code,
                                      Handle<String> source) = 0;
   // Not handlified as this happens during GC. No allocation allowed.
-  virtual void CodeMoveEvent(AbstractCode from, AbstractCode to) = 0;
+  virtual void CodeMoveEvent(Tagged<InstructionStream> from,
+                             Tagged<InstructionStream> to) = 0;
+  virtual void BytecodeMoveEvent(Tagged<BytecodeArray> from,
+                                 Tagged<BytecodeArray> to) = 0;
   virtual void SharedFunctionInfoMoveEvent(Address from, Address to) = 0;
   virtual void NativeContextMoveEvent(Address from, Address to) = 0;
   virtual void CodeMovingGCEvent() = 0;
@@ -106,6 +111,7 @@ class LogEventListener {
   virtual void WeakCodeClearEvent() = 0;
 
   virtual bool is_listening_to_code_events() { return false; }
+  virtual bool allows_code_compaction() { return true; }
 };
 
 // Dispatches code events to a set of registered listeners.
@@ -124,10 +130,6 @@ class Logger {
     if (position != listeners_.end()) return false;
     // Add the listener to the end and update the element
     listeners_.push_back(listener);
-    if (!_is_listening_to_code_events) {
-      _is_listening_to_code_events |= listener->is_listening_to_code_events();
-    }
-    DCHECK_EQ(_is_listening_to_code_events, IsListeningToCodeEvents());
     return true;
   }
   void RemoveListener(LogEventListener* listener) {
@@ -135,15 +137,20 @@ class Logger {
     auto position = std::find(listeners_.begin(), listeners_.end(), listener);
     if (position == listeners_.end()) return;
     listeners_.erase(position);
-    if (listener->is_listening_to_code_events()) {
-      _is_listening_to_code_events = IsListeningToCodeEvents();
-    }
-    DCHECK_EQ(_is_listening_to_code_events, IsListeningToCodeEvents());
   }
 
   bool is_listening_to_code_events() const {
-    DCHECK_EQ(_is_listening_to_code_events, IsListeningToCodeEvents());
-    return _is_listening_to_code_events;
+    for (auto listener : listeners_) {
+      if (listener->is_listening_to_code_events()) return true;
+    }
+    return false;
+  }
+
+  bool allows_code_compaction() const {
+    for (auto listener : listeners_) {
+      if (!listener->allows_code_compaction()) return false;
+    }
+    return true;
   }
 
   void CodeCreateEvent(CodeTag tag, Handle<AbstractCode> code,
@@ -210,10 +217,17 @@ class Logger {
       listener->RegExpCodeCreateEvent(code, source);
     }
   }
-  void CodeMoveEvent(AbstractCode from, AbstractCode to) {
+  void CodeMoveEvent(Tagged<InstructionStream> from,
+                     Tagged<InstructionStream> to) {
     base::MutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeMoveEvent(from, to);
+    }
+  }
+  void BytecodeMoveEvent(Tagged<BytecodeArray> from, Tagged<BytecodeArray> to) {
+    base::MutexGuard guard(&mutex_);
+    for (auto listener : listeners_) {
+      listener->BytecodeMoveEvent(from, to);
     }
   }
   void SharedFunctionInfoMoveEvent(Address from, Address to) {
@@ -264,16 +278,8 @@ class Logger {
   }
 
  private:
-  bool IsListeningToCodeEvents() const {
-    for (auto listener : listeners_) {
-      if (listener->is_listening_to_code_events()) return true;
-    }
-    return false;
-  }
-
   std::vector<LogEventListener*> listeners_;
   base::Mutex mutex_;
-  bool _is_listening_to_code_events = false;
 };
 
 }  // namespace internal

@@ -60,10 +60,10 @@ class V8_EXPORT_PRIVATE HeapAllocator final {
 
   // Supports all `AllocationType` types and allows specifying retry handling.
   template <AllocationRetryMode mode>
-  V8_WARN_UNUSED_RESULT V8_INLINE HeapObject
-  AllocateRawWith(int size, AllocationType allocation,
-                  AllocationOrigin origin = AllocationOrigin::kRuntime,
-                  AllocationAlignment alignment = kTaggedAligned);
+  V8_WARN_UNUSED_RESULT V8_INLINE Tagged<HeapObject> AllocateRawWith(
+      int size, AllocationType allocation,
+      AllocationOrigin origin = AllocationOrigin::kRuntime,
+      AllocationAlignment alignment = kTaggedAligned);
 
   V8_INLINE bool CanAllocateInReadOnlySpace() const;
 
@@ -79,7 +79,6 @@ class V8_EXPORT_PRIVATE HeapAllocator final {
  private:
   V8_INLINE PagedSpace* code_space() const;
   V8_INLINE CodeLargeObjectSpace* code_lo_space() const;
-  V8_INLINE PagedSpace* space_for_maps() const;
   V8_INLINE NewSpace* new_space() const;
   V8_INLINE NewLargeObjectSpace* new_lo_space() const;
   V8_INLINE OldLargeObjectSpace* lo_space() const;
@@ -105,11 +104,9 @@ class V8_EXPORT_PRIVATE HeapAllocator final {
 
   Heap* const heap_;
   Space* spaces_[LAST_SPACE + 1];
-  PagedSpace* space_for_maps_;
   ReadOnlySpace* read_only_space_;
 
   ConcurrentAllocator* shared_old_allocator_;
-  ConcurrentAllocator* shared_map_allocator_;
   OldLargeObjectSpace* shared_lo_space_;
 
 #ifdef V8_ENABLE_ALLOCATION_TIMEOUT

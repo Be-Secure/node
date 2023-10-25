@@ -78,10 +78,6 @@ static void getaddrinfo_do(struct getaddrinfo_req* req) {
 static void getaddrinfo_cb(uv_getaddrinfo_t* handle,
                            int status,
                            struct addrinfo* res) {
-/* TODO(gengjiawen): Fix test on QEMU. */
-#if defined(__QEMU__)
-  RETURN_SKIP("Test does not currently work in QEMU");
-#endif
   struct getaddrinfo_req* req;
 
   ASSERT(status == 0);
@@ -269,6 +265,11 @@ TEST_IMPL(thread_stack_size_explicit) {
   ASSERT(0 == uv_thread_join(&thread));
 
   options.stack_size = 0;
+  ASSERT(0 == uv_thread_create_ex(&thread, &options,
+                                  thread_check_stack, &options));
+  ASSERT(0 == uv_thread_join(&thread));
+
+  options.stack_size = 42;
   ASSERT(0 == uv_thread_create_ex(&thread, &options,
                                   thread_check_stack, &options));
   ASSERT(0 == uv_thread_join(&thread));

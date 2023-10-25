@@ -576,10 +576,10 @@ static void Execute(const char* input, bool multiline, bool unicode,
 #ifdef DEBUG
 
 TEST_F(RegExpTest, ParsePossessiveRepetition) {
-  bool old_flag_value = FLAG_regexp_possessive_quantifier;
+  bool old_flag_value = v8_flags.regexp_possessive_quantifier;
 
   // Enable possessive quantifier syntax.
-  FLAG_regexp_possessive_quantifier = true;
+  v8_flags.regexp_possessive_quantifier = true;
 
   CheckParseEq("a*+", "(# 0 - p 'a')");
   CheckParseEq("a++", "(# 1 - p 'a')");
@@ -588,7 +588,7 @@ TEST_F(RegExpTest, ParsePossessiveRepetition) {
   CheckParseEq("za{10,20}+b", "(: 'z' (# 10 20 p 'a') 'b')");
 
   // Disable possessive quantifier syntax.
-  FLAG_regexp_possessive_quantifier = false;
+  v8_flags.regexp_possessive_quantifier = false;
 
   CHECK_PARSE_ERROR("a*+");
   CHECK_PARSE_ERROR("a++");
@@ -596,7 +596,7 @@ TEST_F(RegExpTest, ParsePossessiveRepetition) {
   CHECK_PARSE_ERROR("a{10,20}+");
   CHECK_PARSE_ERROR("a{10,20}+b");
 
-  FLAG_regexp_possessive_quantifier = old_flag_value;
+  v8_flags.regexp_possessive_quantifier = old_flag_value;
 }
 
 #endif
@@ -657,15 +657,13 @@ static Handle<JSRegExp> CreateJSRegExp(Handle<String> source, Handle<Code> code,
   return regexp;
 }
 
-static ArchRegExpMacroAssembler::Result Execute(JSRegExp regexp, String input,
-                                                int start_offset,
-                                                Address input_start,
-                                                Address input_end,
-                                                int* captures) {
+static ArchRegExpMacroAssembler::Result Execute(
+    Tagged<JSRegExp> regexp, Tagged<String> input, int start_offset,
+    Address input_start, Address input_end, int* captures) {
   return static_cast<NativeRegExpMacroAssembler::Result>(
       NativeRegExpMacroAssembler::ExecuteForTesting(
-          input, start_offset, reinterpret_cast<byte*>(input_start),
-          reinterpret_cast<byte*>(input_end), captures, 0,
+          input, start_offset, reinterpret_cast<uint8_t*>(input_start),
+          reinterpret_cast<uint8_t*>(input_end), captures, 0,
           reinterpret_cast<i::Isolate*>(v8::Isolate::GetCurrent()), regexp));
 }
 
@@ -1653,6 +1651,7 @@ void MockUseCounterCallback(v8::Isolate* isolate,
                             v8::Isolate::UseCounterFeature feature) {
   ++global_use_counts[feature];
 }
+
 }  // namespace
 
 using RegExpTestWithContext = TestWithContext;
@@ -1783,15 +1782,15 @@ TEST_F(RegExpTest, PeepholeNoChange) {
 
   Handle<String> source = factory->NewStringFromStaticChars("^foo");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
-  byte* byte_array = array->GetDataStartAddress();
+  uint8_t* byte_array = array->GetDataStartAddress();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
-  byte* byte_array_optimized = array_optimized->GetDataStartAddress();
+  uint8_t* byte_array_optimized = array_optimized->GetDataStartAddress();
 
   CHECK_EQ(0, memcmp(byte_array, byte_array_optimized, length));
 }
@@ -1818,11 +1817,11 @@ TEST_F(RegExpTest, PeepholeSkipUntilChar) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
   int length_optimized = array_optimized->length();
@@ -1871,11 +1870,11 @@ TEST_F(RegExpTest, PeepholeSkipUntilBitInTable) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
   int length_optimized = array_optimized->length();
@@ -1918,11 +1917,11 @@ TEST_F(RegExpTest, PeepholeSkipUntilCharPosChecked) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
   int length_optimized = array_optimized->length();
@@ -1966,11 +1965,11 @@ TEST_F(RegExpTest, PeepholeSkipUntilCharAnd) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
   int length_optimized = array_optimized->length();
@@ -2014,11 +2013,11 @@ TEST_F(RegExpTest, PeepholeSkipUntilCharOrChar) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
   int length_optimized = array_optimized->length();
@@ -2073,11 +2072,11 @@ TEST_F(RegExpTest, PeepholeSkipUntilGtOrNotBitInTable) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
   int length = array->length();
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
   int length_optimized = array_optimized->length();
@@ -2152,7 +2151,7 @@ TEST_F(RegExpTest, PeepholeLabelFixupsInside) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
 
   for (int label_idx = 0; label_idx < 3; label_idx++) {
@@ -2162,7 +2161,7 @@ TEST_F(RegExpTest, PeepholeLabelFixupsInside) {
     }
   }
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
 
@@ -2258,7 +2257,7 @@ TEST_F(RegExpTest, PeepholeLabelFixupsComplex) {
 
   Handle<String> source = factory->NewStringFromStaticChars("dummy");
 
-  i::FLAG_regexp_peephole_optimization = false;
+  v8_flags.regexp_peephole_optimization = false;
   Handle<ByteArray> array = Handle<ByteArray>::cast(orig.GetCode(source));
 
   for (int label_idx = 0; label_idx < 4; label_idx++) {
@@ -2268,7 +2267,7 @@ TEST_F(RegExpTest, PeepholeLabelFixupsComplex) {
     }
   }
 
-  i::FLAG_regexp_peephole_optimization = true;
+  v8_flags.regexp_peephole_optimization = true;
   Handle<ByteArray> array_optimized =
       Handle<ByteArray>::cast(opt.GetCode(source));
 
@@ -2300,7 +2299,7 @@ TEST_F(RegExpTest, PeepholeLabelFixupsComplex) {
 }
 
 TEST_F(RegExpTestWithContext, UnicodePropertyEscapeCodeSize) {
-  i::FlagScope<bool> f(&v8::internal::FLAG_regexp_tier_up, false);
+  FlagScope<bool> f(&v8_flags.regexp_tier_up, false);
 
   v8::HandleScope scope(isolate());
   i::Handle<i::JSRegExp> re = Utils::OpenHandle(
@@ -2309,15 +2308,15 @@ TEST_F(RegExpTestWithContext, UnicodePropertyEscapeCodeSize) {
 
   static constexpr int kMaxSize = 200 * KB;
   static constexpr bool kIsNotLatin1 = false;
-  Object maybe_code = re->code(kIsNotLatin1);
-  Object maybe_bytecode = re->bytecode(kIsNotLatin1);
-  if (maybe_bytecode.IsByteArray()) {
+  Tagged<Object> maybe_code = re->code(kIsNotLatin1);
+  Tagged<Object> maybe_bytecode = re->bytecode(kIsNotLatin1);
+  if (IsByteArray(maybe_bytecode)) {
     // On x64, excessive inlining produced >250KB.
-    CHECK_LT(ByteArray::cast(maybe_bytecode).Size(), kMaxSize);
-  } else if (maybe_code.IsCodeT()) {
+    CHECK_LT(ByteArray::cast(maybe_bytecode)->Size(), kMaxSize);
+  } else if (IsCode(maybe_code)) {
     // On x64, excessive inlining produced >360KB.
-    CHECK_LT(FromCodeT(CodeT::cast(maybe_code)).Size(), kMaxSize);
-    CHECK_EQ(FromCodeT(CodeT::cast(maybe_code)).kind(), CodeKind::REGEXP);
+    CHECK_LT(Code::cast(maybe_code)->Size(), kMaxSize);
+    CHECK_EQ(Code::cast(maybe_code)->kind(), CodeKind::REGEXP);
   } else {
     UNREACHABLE();
   }
@@ -2340,15 +2339,15 @@ i::Handle<i::Object> RegExpExec(const RegExpExecData* d) {
 void ReenterRegExp(v8::Isolate* isolate, void* data) {
   RegExpExecData* d = static_cast<RegExpExecData*>(data);
   i::Handle<i::Object> result = RegExpExec(d);
-  CHECK(result->IsNull());
+  CHECK(IsNull(*result));
 }
 
 }  // namespace
 
 // Tests reentrant irregexp calls.
 TEST_F(RegExpTestWithContext, RegExpInterruptReentrantExecution) {
-  CHECK(!i::FLAG_jitless);
-  i::FLAG_regexp_tier_up = false;  // Enter irregexp, not the interpreter.
+  CHECK(!v8_flags.jitless);
+  v8_flags.regexp_tier_up = false;  // Enter irregexp, not the interpreter.
 
   v8::HandleScope scope(isolate());
 
@@ -2362,7 +2361,7 @@ TEST_F(RegExpTestWithContext, RegExpInterruptReentrantExecution) {
   isolate()->RequestInterrupt(&ReenterRegExp, &d);
 
   i::Handle<i::Object> result = RegExpExec(&d);
-  CHECK(result->IsNull());
+  CHECK(IsNull(*result));
 }
 
 #undef CHECK_PARSE_ERROR

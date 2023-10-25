@@ -14,6 +14,7 @@
 #include "src/objects/objects.h"
 #include "src/runtime/runtime.h"
 #include "src/strings/unicode-inl.h"
+#include "test/cctest/heap/heap-utils.h"
 #include "test/cctest/test-api.h"
 
 using ::v8::Context;
@@ -377,7 +378,7 @@ void InterceptorHasOwnPropertyGetter(
 void InterceptorHasOwnPropertyGetterGC(
     Local<Name> name, const v8::PropertyCallbackInfo<v8::Value>& info) {
   // The request is not intercepted so don't call ApiTestFuzzer::Fuzz() here.
-  CcTest::CollectAllGarbage();
+  i::heap::InvokeMajorGC(CcTest::heap());
 }
 
 int query_counter_int = 0;
@@ -1370,11 +1371,11 @@ THREADED_TEST(InterceptorLoadGlobalICGlobalWithInterceptor) {
   LocalContext context(nullptr, templ_global);
   i::Handle<i::JSReceiver> global_proxy =
       v8::Utils::OpenHandle<Object, i::JSReceiver>(context->Global());
-  CHECK(global_proxy->IsJSGlobalProxy());
+  CHECK(IsJSGlobalProxy(*global_proxy));
   i::Handle<i::JSGlobalObject> global(
-      i::JSGlobalObject::cast(global_proxy->map().prototype()),
+      i::JSGlobalObject::cast(global_proxy->map()->prototype()),
       global_proxy->GetIsolate());
-  CHECK(global->map().has_named_interceptor());
+  CHECK(global->map()->has_named_interceptor());
 
   v8::Local<Value> value = CompileRun(
       "var f = function() { "
@@ -1424,7 +1425,7 @@ THREADED_TEST(InterceptorLoadGlobalICGlobalWithInterceptor) {
 // Test load of a non-existing global through prototype chain when a global
 // object has an interceptor.
 THREADED_TEST(InterceptorLoadICGlobalWithInterceptor) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
   v8::Isolate* isolate = CcTest::isolate();
   v8::HandleScope scope(isolate);
   v8::Local<v8::ObjectTemplate> templ_global = v8::ObjectTemplate::New(isolate);
@@ -1434,11 +1435,11 @@ THREADED_TEST(InterceptorLoadICGlobalWithInterceptor) {
   LocalContext context(nullptr, templ_global);
   i::Handle<i::JSReceiver> global_proxy =
       v8::Utils::OpenHandle<Object, i::JSReceiver>(context->Global());
-  CHECK(global_proxy->IsJSGlobalProxy());
+  CHECK(IsJSGlobalProxy(*global_proxy));
   i::Handle<i::JSGlobalObject> global(
-      i::JSGlobalObject::cast(global_proxy->map().prototype()),
+      i::JSGlobalObject::cast(global_proxy->map()->prototype()),
       global_proxy->GetIsolate());
-  CHECK(global->map().has_named_interceptor());
+  CHECK(global->map()->has_named_interceptor());
 
   ExpectInt32(
       "(function() {"
@@ -2571,7 +2572,7 @@ THREADED_TEST(PropertyDefinerCallbackInDefineNamedOwnIC) {
   }
 
   {
-    i::FLAG_lazy_feedback_allocation = false;
+    i::v8_flags.lazy_feedback_allocation = false;
     i::FlagList::EnforceFlagImplications();
     LocalContext env;
     v8::HandleScope scope(env->GetIsolate());
@@ -2579,7 +2580,7 @@ THREADED_TEST(PropertyDefinerCallbackInDefineNamedOwnIC) {
   }
 
   {
-    i::FLAG_lazy_feedback_allocation = false;
+    i::v8_flags.lazy_feedback_allocation = false;
     i::FlagList::EnforceFlagImplications();
     LocalContext env;
     v8::HandleScope scope(env->GetIsolate());
@@ -4408,7 +4409,7 @@ static void InterceptorCallICGetter6(
 // Same test as above, except the code is wrapped in a function
 // to test the optimized compiler.
 THREADED_TEST(InterceptorCallICConstantFunctionNotNeededWrapped) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
   v8::Isolate* isolate = CcTest::isolate();
   v8::HandleScope scope(isolate);
   v8::Local<v8::ObjectTemplate> templ = ObjectTemplate::New(isolate);
@@ -4952,8 +4953,8 @@ THREADED_TEST(NamedPropertyHandlerGetterAttributes) {
 
 
 THREADED_TEST(Regress256330) {
-  if (!i::FLAG_turbofan) return;
-  i::FLAG_allow_natives_syntax = true;
+  if (!i::v8_flags.turbofan) return;
+  i::v8_flags.allow_natives_syntax = true;
   LocalContext context;
   v8::HandleScope scope(context->GetIsolate());
   Local<FunctionTemplate> templ = FunctionTemplate::New(context->GetIsolate());
@@ -4976,7 +4977,7 @@ THREADED_TEST(Regress256330) {
 }
 
 THREADED_TEST(OptimizedInterceptorSetter) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
   v8::HandleScope scope(CcTest::isolate());
   Local<FunctionTemplate> templ = FunctionTemplate::New(CcTest::isolate());
   AddInterceptor(templ, InterceptorGetter, InterceptorSetter);
@@ -5006,7 +5007,7 @@ THREADED_TEST(OptimizedInterceptorSetter) {
 }
 
 THREADED_TEST(OptimizedInterceptorGetter) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
   v8::HandleScope scope(CcTest::isolate());
   Local<FunctionTemplate> templ = FunctionTemplate::New(CcTest::isolate());
   AddInterceptor(templ, InterceptorGetter, InterceptorSetter);
@@ -5033,7 +5034,7 @@ THREADED_TEST(OptimizedInterceptorGetter) {
 }
 
 THREADED_TEST(OptimizedInterceptorFieldRead) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
   v8::HandleScope scope(CcTest::isolate());
   Local<FunctionTemplate> templ = FunctionTemplate::New(CcTest::isolate());
   AddInterceptor(templ, InterceptorGetter, InterceptorSetter);
@@ -5057,7 +5058,7 @@ THREADED_TEST(OptimizedInterceptorFieldRead) {
 }
 
 THREADED_TEST(OptimizedInterceptorFieldWrite) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
   v8::HandleScope scope(CcTest::isolate());
   Local<FunctionTemplate> templ = FunctionTemplate::New(CcTest::isolate());
   AddInterceptor(templ, InterceptorGetter, InterceptorSetter);

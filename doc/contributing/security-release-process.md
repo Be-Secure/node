@@ -19,15 +19,23 @@ steps listed in the process as outlined in
 The current security stewards are documented in the main Node.js
 [README.md](https://github.com/nodejs/node#security-release-stewards).
 
-| Company    | Person          | Release Date |
-| ---------- | --------------- | ------------ |
-| NearForm   | Matteo          | 2021-Oct-12  |
-| Datadog    | Bryan           | 2022-Jan-10  |
-| RH and IBM | Joe             | 2022-Mar-18  |
-| NearForm   | Matteo / Rafael | 2022-Jul-07  |
-| Datadog    | Vladimir        | 2022-Sep-23  |
-| NodeSource | Juan            |              |
-| RH and IBM | Michael         |              |
+| Company      | Person          | Release Date |
+| ------------ | --------------- | ------------ |
+| NearForm     | Matteo          | 2021-Oct-12  |
+| Datadog      | Bryan           | 2022-Jan-10  |
+| RH and IBM   | Joe             | 2022-Mar-18  |
+| NearForm     | Matteo / Rafael | 2022-Jul-07  |
+| Datadog      | Vladimir        | 2022-Sep-23  |
+| NodeSource   | Juan            | 2022-Nov-04  |
+| RH and IBM   | Michael         | 2023-Feb-16  |
+| NearForm     | Rafael          | 2023-Jun-20  |
+| NearForm     | Rafael          | 2023-Aug-09  |
+| NearForm     | Rafael          | 2023-Oct-13  |
+| Datadog      | Bryan           |              |
+| IBM          | Joe             |              |
+| Platformatic | Matteo          |              |
+| NodeSource   | Juan            |              |
+| Red Hat      | Michael         |              |
 
 ## Planning
 
@@ -49,6 +57,8 @@ The current security stewards are documented in the main Node.js
   * [ ] pre-release: _**LINK TO PR**_
   * [ ] post-release: _**LINK TO PR**_
     * List vulnerabilities in order of descending severity
+    * Use the "summary" feature in HackerOne to sync post-release content
+      and CVE requests. Example [2038134](https://hackerone.com/bugs?subject=nodejs\&report_id=2038134)
     * Ask the HackerOne reporter if they would like to be credited on the
       security release blog page:
       ```text
@@ -63,8 +73,6 @@ The current security stewards are documented in the main Node.js
 
 ## Announcement (one week in advance of the planned release)
 
-* [ ] Verify that GitHub Actions are working as normal: <https://www.githubstatus.com/>.
-
 * [ ] Check that all vulnerabilities are ready for release integration:
   * PRs against all affected release lines or cherry-pick clean
   * Approved
@@ -74,6 +82,9 @@ The current security stewards are documented in the main Node.js
       between Security Releases.
   * Pass `make test`
   * Have CVEs
+    * Use the "summary" feature in HackerOne to create a description for the
+      CVE and the post release announcement.
+      Example [2038134](https://hackerone.com/bugs?subject=nodejs\&report_id=2038134)
     * Make sure that dependent libraries have CVEs for their issues. We should
       only create CVEs for vulnerabilities in Node.js itself. This is to avoid
       having duplicate CVEs for the same vulnerability.
@@ -102,7 +113,7 @@ The current security stewards are documented in the main Node.js
   For more information see: https://nodejs.org/en/blog/vulnerability/month-year-security-releases/
   ```
   (Get access from existing manager: Matteo Collina, Rodd Vagg, Michael Dawson,
-  Bryan English, Vladimir de Turckheim)
+  Bryan English)
 
 * [ ] CC `oss-security@lists.openwall.com` on pre-release
 
@@ -110,7 +121,9 @@ The google groups UI does not support adding a CC, until we figure
 out a better way, forward the email you receive to
 `oss-security@lists.openwall.com` as a CC.
 
-* [ ] Create a new issue in [nodejs/tweet][]
+* [ ] Post in the [nodejs-social channel][]
+  in the OpenJS slack asking for amplication of the blog post.
+
   ```text
   Security release pre-alert:
 
@@ -122,6 +135,13 @@ out a better way, forward the email you receive to
 
   https://nodejs.org/en/blog/vulnerability/month-year-security-releases/
   ```
+
+  We specifically ask that collaborators other than the releasers and security
+  steward working on the security release do not tweet or publicise the release
+  until the tweet from the Node.js twitter handle goes out. We have often
+  seen tweets sent out before the release and associated announcements are
+  complete which may confuse those waiting for the release and also takes
+  away from the work the releasers have put into shipping the releases.
 
 * [ ] Request releaser(s) to start integrating the PRs to be released.
 
@@ -161,7 +181,8 @@ out a better way, forward the email you receive to
   For more information see: https://nodejs.org/en/blog/vulnerability/month-year-security-releases/
   ```
 
-* [ ] Create a new issue in [nodejs/tweet][]
+* [ ] Post in the [nodejs-social channel][]
+  in the OpenJS slack asking for amplication of the blog post.
   ```text
   Security release:
 
@@ -196,8 +217,29 @@ out a better way, forward the email you receive to
   [Security release stewards](https://github.com/nodejs/node/blob/HEAD/doc/contributing/security-release-process.md#security-release-stewards).
   If necessary add the next rotation of the steward rotation.
 
+## When things go wrong
+
+### Incomplete fixes
+
+When a CVE is reported as fixed in a security release and it turns out that the
+fix was incomplete, a new CVE should be used to cover subsequent fix. This
+is best practice and avoids confusion that might occur if people believe
+they have patched the original CVE by updating their Node.js version and
+then we later change the `fixed in` value for the CVE.
+
+### Updating CVEs
+
+The steps to correct CVE information are:
+
+* Go to the “CVE IDs” section in your program
+  sections (<https://hackerone.com/nodejs/cve_requests>)
+* Click the “Request a CVE ID” button
+* Enter the CVE ID that needs to be updated
+* Include all the details that need updating within the form
+* Submit the request
+
 [H1 CVE requests]: https://hackerone.com/nodejs/cve_requests
 [docker-node]: https://github.com/nodejs/docker-node/issues
 [email]: https://groups.google.com/forum/#!forum/nodejs-sec
+[nodejs-social channel]: https://openjs-foundation.slack.com/archives/C0142A39BNE
 [nodejs/build]: https://github.com/nodejs/build/issues
-[nodejs/tweet]: https://github.com/nodejs/tweet/issues

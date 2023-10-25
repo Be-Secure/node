@@ -5,18 +5,18 @@ const path = require('path');
 
 if (process.argv[2] === 'wasi-child') {
   common.expectWarning('ExperimentalWarning',
-                       'WASI is an experimental feature. This feature could ' +
-                       'change at any time');
+                       'WASI is an experimental feature and might change at any time');
 
   const { WASI } = require('wasi');
   const wasmDir = path.join(__dirname, 'wasm');
   const wasi = new WASI({
+    version: 'preview1',
     args: [],
     env: process.env,
     preopens: {
       '/sandbox': process.argv[4],
-      '/tmp': process.argv[5]
-    }
+      '/tmp': process.argv[5],
+    },
   });
   const importObject = { wasi_snapshot_preview1: wasi.wasiImport };
   const modulePath = path.join(wasmDir, `${process.argv[3]}.wasm`);
@@ -38,15 +38,15 @@ if (process.argv[2] === 'wasi-child') {
 
   // Setup the sandbox environment.
   tmpdir.refresh();
-  const sandbox = path.join(tmpdir.path, 'sandbox');
+  const sandbox = tmpdir.resolve('sandbox');
   const sandboxedFile = path.join(sandbox, 'input.txt');
-  const externalFile = path.join(tmpdir.path, 'outside.txt');
+  const externalFile = tmpdir.resolve('outside.txt');
   const sandboxedDir = path.join(sandbox, 'subdir');
   const sandboxedSymlink = path.join(sandboxedDir, 'input_link.txt');
   const escapingSymlink = path.join(sandboxedDir, 'outside.txt');
   const loopSymlink1 = path.join(sandboxedDir, 'loop1');
   const loopSymlink2 = path.join(sandboxedDir, 'loop2');
-  const sandboxedTmp = path.join(tmpdir.path, 'tmp');
+  const sandboxedTmp = tmpdir.resolve('tmp');
 
   fs.mkdirSync(sandbox);
   fs.mkdirSync(sandboxedDir);
@@ -64,7 +64,6 @@ if (process.argv[2] === 'wasi-child') {
     console.log('executing', options.test);
     const opts = { env: { ...process.env, NODE_DEBUG_NATIVE: 'wasi' } };
     const child = cp.spawnSync(process.execPath, [
-      '--experimental-wasi-unstable-preview1',
       __filename,
       'wasi-child',
       options.test,

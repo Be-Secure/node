@@ -117,6 +117,7 @@ function makeWtf8TestDataSegment() {
   for (let [instr, name] of
        [[kExprStringNewWtf8Array, "new_wtf8"],
         [kExprStringNewUtf8Array, "new_utf8"],
+        [kExprStringNewUtf8ArrayTry, "new_utf8_try"],
         [kExprStringNewLossyUtf8Array, "new_utf8_sloppy"]]) {
     builder.addFunction(name, kSig_w_ii)
       .exportFunc()
@@ -137,6 +138,13 @@ function makeWtf8TestDataSegment() {
       ...GCInstr(kExprStringNewWtf8Array)
     ]);
 
+  builder.addFunction("null_array", kSig_w_v).exportFunc()
+    .addBody([
+      kExprRefNull, i8_array,
+      kExprI32Const, 0, kExprI32Const, 0,
+      ...GCInstr(kExprStringNewWtf8Array)
+    ])
+
   let instance = builder.instantiate();
   for (let [str, {offset, length}] of Object.entries(data.valid)) {
     let start = offset;
@@ -145,6 +153,7 @@ function makeWtf8TestDataSegment() {
     if (HasIsolatedSurrogate(str)) {
       assertThrows(() => instance.exports.new_utf8(start, end),
                    WebAssembly.RuntimeError, "invalid UTF-8 string");
+      assertNull(instance.exports.new_utf8_try(start, end));
 
       // Isolated surrogates have the three-byte pattern ED [A0,BF]
       // [80,BF].  When the sloppy decoder gets to the second byte, it
@@ -158,6 +167,7 @@ function makeWtf8TestDataSegment() {
     } else {
       assertEquals(str, instance.exports.new_utf8(start, end));
       assertEquals(str, instance.exports.new_utf8_sloppy(start, end));
+      assertEquals(str, instance.exports.new_utf8_try(start, end));
     }
   }
   for (let [str, {offset, length}] of Object.entries(data.invalid)) {
@@ -167,6 +177,7 @@ function makeWtf8TestDataSegment() {
                  WebAssembly.RuntimeError, "invalid WTF-8 string");
     assertThrows(() => instance.exports.new_utf8(start, end),
                  WebAssembly.RuntimeError, "invalid UTF-8 string");
+    assertNull(instance.exports.new_utf8_try(start, end));
   }
 
   assertEquals("ascii", instance.exports.bounds_check(0, "ascii".length));
@@ -176,9 +187,49 @@ function makeWtf8TestDataSegment() {
                                                   "ascii".length));
   assertThrows(() => instance.exports.bounds_check(0, 100),
                WebAssembly.RuntimeError, "array element access out of bounds");
+  assertThrows(() => instance.exports.bounds_check(0, -1),
+               WebAssembly.RuntimeError, "array element access out of bounds");
+  assertThrows(() => instance.exports.bounds_check(-1, 0),
+               WebAssembly.RuntimeError, "array element access out of bounds");
   assertThrows(() => instance.exports.bounds_check("ascii".length,
                                                    "ascii".length + 1),
                WebAssembly.RuntimeError, "array element access out of bounds");
+  assertThrows(() => instance.exports.null_array(),
+               WebAssembly.RuntimeError, "dereferencing a null pointer");
+})();
+
+(function TestStringNewUtf8ArrayTryNullCheck() {
+  let builder = new WasmModuleBuilder();
+  let data = makeWtf8TestDataSegment();
+  let data_index = builder.addPassiveDataSegment(data.data);
+  let i8_array = builder.addArray(kWasmI8, true);
+
+  let make_i8_array = builder.addFunction(
+      "make_i8_array", makeSig([], [wasmRefType(i8_array)]))
+    .addBody([
+      ...wasmI32Const(0),
+      ...wasmI32Const(data.data.length),
+      kGCPrefix, kExprArrayNewData, i8_array, data_index
+    ]).index;
+
+  builder.addFunction("is_null_new_utf8_try", kSig_i_ii)
+    .exportFunc()
+    .addBody([
+      kExprCallFunction, make_i8_array,
+      kExprLocalGet, 0, kExprLocalGet, 1,
+      ...GCInstr(kExprStringNewUtf8ArrayTry),
+      kExprRefIsNull,
+    ]);
+
+  let instance = builder.instantiate();
+  for (let [str, {offset, length}] of Object.entries(data.valid)) {
+    assertEquals(
+        +HasIsolatedSurrogate(str),
+        instance.exports.is_null_new_utf8_try(offset, offset+length));
+  }
+  for (let [str, {offset, length}] of Object.entries(data.invalid)) {
+    assertEquals(1, instance.exports.is_null_new_utf8_try(offset, offset+length));
+  }
 })();
 
 function encodeWtf16LE(str) {
@@ -192,11 +243,11 @@ function encodeWtf16LE(str) {
   return out;
 }
 
-function makeWtf16TestDataSegment() {
+function makeWtf16TestDataSegment(strings) {
   let data = []
   let valid = {};
 
-  for (let str of interestingStrings) {
+  for (let str of strings) {
     valid[str] = { offset: data.length, length: str.length };
     for (let byte of encodeWtf16LE(str)) {
       data.push(byte);
@@ -209,7 +260,15 @@ function makeWtf16TestDataSegment() {
 (function TestStringNewWtf16Array() {
   let builder = new WasmModuleBuilder();
 
-  let data = makeWtf16TestDataSegment();
+  // string.new_wtf16_array switches to a different implementation (runtime
+  // instead of Torque) for more than 32 characters, so provide some coverage
+  // for that case.
+  let strings = interestingStrings.concat([
+    "String with more than 32 characters, all of which are ASCII",
+    "Two-byte string with more than 32 characters \ucccc \ud800\udc00 \xa9?"
+  ]);
+
+  let data = makeWtf16TestDataSegment(strings);
   let data_index = builder.addPassiveDataSegment(data.data);
   let ascii_data_index =
       builder.addPassiveDataSegment(Uint8Array.from(encodeWtf16LE("ascii")));
@@ -242,6 +301,14 @@ function makeWtf16TestDataSegment() {
       ...GCInstr(kExprStringNewWtf16Array)
     ]);
 
+  builder.addFunction("null_array", kSig_w_v).exportFunc()
+    .addBody([
+      kExprRefNull, i16_array,
+      kExprI32Const, 0,
+      kExprI32Const, 0,
+      ...GCInstr(kExprStringNewWtf16Array)
+    ]);
+
   let instance = builder.instantiate();
   for (let [str, {offset, length}] of Object.entries(data.valid)) {
     let start = offset / 2;
@@ -259,6 +326,8 @@ function makeWtf16TestDataSegment() {
   assertThrows(() => instance.exports.bounds_check("ascii".length,
                                                    "ascii".length + 1),
                WebAssembly.RuntimeError, "array element access out of bounds");
+  assertThrows(() => instance.exports.null_array(),
+               WebAssembly.RuntimeError, "dereferencing a null pointer");
 })();
 
 (function TestStringEncodeWtf8Array() {
@@ -377,7 +446,7 @@ function makeWtf16TestDataSegment() {
       makeSig([kWasmStringRef, kWasmI32, kWasmI32],
               [kWasmStringRef]);
   // Allocate an array and encode into it.  Then decode it.
-  // (str, length, offset=0) -> str
+  // (str, length, offset) -> str
   builder.addFunction("encode", kSig_w_wii)
     .exportFunc()
     .addLocals(wasmRefNullType(i16_array), 1)

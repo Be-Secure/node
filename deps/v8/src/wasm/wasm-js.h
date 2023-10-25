@@ -9,16 +9,22 @@
 #ifndef V8_WASM_WASM_JS_H_
 #define V8_WASM_WASM_JS_H_
 
+#include <memory>
+
 #include "src/common/globals.h"
 
 namespace v8 {
-namespace internal {
-class Context;
-template <typename T>
-class Handle;
+class WasmStreaming;
+}  // namespace v8
+
+namespace v8::internal {
 
 namespace wasm {
+class CompilationResultResolver;
 class StreamingDecoder;
+
+V8_EXPORT_PRIVATE std::unique_ptr<WasmStreaming> StartStreamingForTesting(
+    Isolate*, std::shared_ptr<wasm::CompilationResultResolver>);
 }  // namespace wasm
 
 // Exposes a WebAssembly API to JavaScript through the V8 API.
@@ -28,10 +34,9 @@ class WasmJs {
                                         bool exposed_on_global_object);
 
   V8_EXPORT_PRIVATE static void InstallConditionalFeatures(
-      Isolate* isolate, Handle<Context> context);
+      Isolate* isolate, Handle<NativeContext> context);
 };
 
-}  // namespace internal
-}  // namespace v8
+}  // namespace v8::internal
 
 #endif  // V8_WASM_WASM_JS_H_

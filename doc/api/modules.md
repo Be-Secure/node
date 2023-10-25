@@ -80,8 +80,10 @@ By default, Node.js will treat the following as CommonJS modules:
 * Files with a `.js` extension when the nearest parent `package.json` file
   contains a top-level field [`"type"`][] with a value of `"commonjs"`.
 
-* Files with a `.js` extension when the nearest parent `package.json` file
-  doesn't contain a top-level field [`"type"`][]. Package authors should include
+* Files with a `.js` extension or without an extension, when the nearest parent
+  `package.json` file doesn't contain a top-level field [`"type"`][] or there is
+  no `package.json` in any parent folder; unless the file contains syntax that
+  errors unless it is evaluated as an ES module. Package authors should include
   the [`"type"`][] field, even in packages where all sources are CommonJS. Being
   explicit about the `type` of the package will make things easier for build
   tools and loaders to determine how the files in the package should be
@@ -90,8 +92,8 @@ By default, Node.js will treat the following as CommonJS modules:
 * Files with an extension that is not `.mjs`, `.cjs`, `.json`, `.node`, or `.js`
   (when the nearest parent `package.json` file contains a top-level field
   [`"type"`][] with a value of `"module"`, those files will be recognized as
-  CommonJS modules only if they are being `require`d, not when used as the
-  command-line entry point of the program).
+  CommonJS modules only if they are being included via `require()`, not when
+  used as the command-line entry point of the program).
 
 See [Determining module system][] for more details.
 
@@ -191,7 +193,7 @@ require(X) from module at path Y
    a. return the core module
    b. STOP
 2. If X begins with '/'
-   a. set Y to be the filesystem root
+   a. set Y to be the file system root
 3. If X begins with './' or '/' or '../'
    a. LOAD_AS_FILE(Y + X)
    b. LOAD_AS_DIRECTORY(Y + X)
@@ -272,15 +274,10 @@ LOAD_PACKAGE_SELF(X, DIR)
 6. RESOLVE_ESM_MATCH(MATCH)
 
 RESOLVE_ESM_MATCH(MATCH)
-1. let { RESOLVED, EXACT } = MATCH
-2. let RESOLVED_PATH = fileURLToPath(RESOLVED)
-3. If EXACT is true,
-   a. If the file at RESOLVED_PATH exists, load RESOLVED_PATH as its extension
-      format. STOP
-4. Otherwise, if EXACT is false,
-   a. LOAD_AS_FILE(RESOLVED_PATH)
-   b. LOAD_AS_DIRECTORY(RESOLVED_PATH)
-5. THROW "not found"
+1. let RESOLVED_PATH = fileURLToPath(MATCH)
+2. If the file at RESOLVED_PATH exists, load RESOLVED_PATH as its extension
+   format. STOP
+3. THROW "not found"
 </pre>
 
 ## Caching

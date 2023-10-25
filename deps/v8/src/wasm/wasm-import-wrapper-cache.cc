@@ -6,6 +6,7 @@
 
 #include <vector>
 
+#include "src/wasm/std-object-sizes.h"
 #include "src/wasm/wasm-code-manager.h"
 
 namespace v8 {
@@ -22,24 +23,26 @@ WasmCode*& WasmImportWrapperCache::operator[](
   return entry_map_[key];
 }
 
-WasmCode* WasmImportWrapperCache::Get(compiler::WasmImportCallKind kind,
-                                      const FunctionSig* sig,
+WasmCode* WasmImportWrapperCache::Get(ImportCallKind kind,
+                                      uint32_t canonical_type_index,
                                       int expected_arity,
                                       Suspend suspend) const {
   base::MutexGuard lock(&mutex_);
 
-  auto it = entry_map_.find({kind, sig, expected_arity, suspend});
+  auto it =
+      entry_map_.find({kind, canonical_type_index, expected_arity, suspend});
   DCHECK(it != entry_map_.end());
   return it->second;
 }
 
-WasmCode* WasmImportWrapperCache::MaybeGet(compiler::WasmImportCallKind kind,
-                                           const FunctionSig* sig,
+WasmCode* WasmImportWrapperCache::MaybeGet(ImportCallKind kind,
+                                           uint32_t canonical_type_index,
                                            int expected_arity,
                                            Suspend suspend) const {
   base::MutexGuard lock(&mutex_);
 
-  auto it = entry_map_.find({kind, sig, expected_arity, suspend});
+  auto it =
+      entry_map_.find({kind, canonical_type_index, expected_arity, suspend});
   if (it == entry_map_.end()) return nullptr;
   return it->second;
 }
@@ -53,6 +56,11 @@ WasmImportWrapperCache::~WasmImportWrapperCache() {
     }
   }
   WasmCode::DecrementRefCount(base::VectorOf(ptrs));
+}
+
+size_t WasmImportWrapperCache::EstimateCurrentMemoryConsumption() const {
+  UPDATE_WHEN_CLASS_CHANGES(WasmImportWrapperCache, 88);
+  return sizeof(WasmImportWrapperCache) + ContentSize(entry_map_);
 }
 
 }  // namespace wasm

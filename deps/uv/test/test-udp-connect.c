@@ -98,9 +98,8 @@ static void sv_recv_cb(uv_udp_t* handle,
 
 
 TEST_IMPL(udp_connect) {
-#if defined(__PASE__)
-  RETURN_SKIP(
-      "IBMi PASE's UDP connection can not be disconnected with AF_UNSPEC.");
+#if defined(__OpenBSD__)
+  RETURN_SKIP("Test does not currently work in OpenBSD");
 #endif
   uv_udp_send_t req;
   struct sockaddr_in ext_addr;
@@ -192,6 +191,6 @@ TEST_IMPL(udp_connect) {
   ASSERT(client.send_queue_size == 0);
   ASSERT(server.send_queue_size == 0);
 
-  MAKE_VALGRIND_HAPPY();
+  MAKE_VALGRIND_HAPPY(uv_default_loop());
   return 0;
 }

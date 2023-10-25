@@ -18,7 +18,7 @@ const hacks = [
   'eslint-plugin-jsdoc',
   'eslint-plugin-markdown',
   '@babel/eslint-parser',
-  '@babel/plugin-syntax-import-assertions',
+  '@babel/plugin-syntax-import-attributes',
 ];
 Module._findPath = (request, paths, isMain) => {
   const r = ModuleFindPath(request, paths, isMain);
@@ -44,7 +44,7 @@ module.exports = {
   parserOptions: {
     babelOptions: {
       plugins: [
-        Module._findPath('@babel/plugin-syntax-import-assertions'),
+        Module._findPath('@babel/plugin-syntax-import-attributes'),
       ],
     },
     requireConfigFile: false,
@@ -53,10 +53,10 @@ module.exports = {
   overrides: [
     {
       files: [
-        'test/es-module/test-esm-type-flag.js',
-        'test/es-module/test-esm-type-flag-alias.js',
         '*.mjs',
         'test/es-module/test-esm-example-loader.js',
+        'test/es-module/test-esm-type-flag.js',
+        'test/es-module/test-esm-type-flag-alias.js',
       ],
       parserOptions: { sourceType: 'module' },
     },
@@ -68,7 +68,7 @@ module.exports = {
       files: ['**/*.md/*.cjs', '**/*.md/*.js'],
       parserOptions: {
         sourceType: 'script',
-        ecmaFeatures: { impliedStrict: true }
+        ecmaFeatures: { impliedStrict: true },
       },
       rules: { strict: 'off' },
     },
@@ -103,13 +103,29 @@ module.exports = {
         },
         {
           name: 'Buffer',
-          message: 'Import Buffer instead of using the global'
+          message: 'Import Buffer instead of using the global',
         },
         {
           name: 'process',
-          message: 'Import process instead of using the global'
+          message: 'Import process instead of using the global',
         },
       ] },
+    },
+    {
+      files: [
+        'lib/internal/modules/**/*.js',
+      ],
+      rules: {
+        'curly': 'error',
+      },
+    },
+    {
+      files: [
+        'lib/internal/test_runner/**/*.js',
+      ],
+      rules: {
+        'node-core/set-proto-to-null-in-object': 'error',
+      },
     },
   ],
   rules: {
@@ -117,8 +133,8 @@ module.exports = {
     // https://eslint.org/docs/rules/
     'accessor-pairs': 'error',
     'array-callback-return': 'error',
-    'arrow-parens': ['error', 'always'],
-    'arrow-spacing': ['error', { before: true, after: true }],
+    'arrow-parens': 'error',
+    'arrow-spacing': 'error',
     'block-scoped-var': 'error',
     'block-spacing': 'error',
     'brace-style': ['error', '1tbs', { allowSingleLine: true }],
@@ -126,8 +142,7 @@ module.exports = {
       line: {
         // Ignore all lines that have less characters than 20 and all lines that
         // start with something that looks like a variable name or code.
-        // eslint-disable-next-line max-len
-        ignorePattern: '.{0,20}$|[a-z]+ ?[0-9A-Z_.(/=:[#-]|std|http|ssh|ftp|(let|var|const) [a-z_A-Z0-9]+ =|[b-z] |[a-z]*[0-9].* ',
+        ignorePattern: '.{0,20}$|[a-z]+ ?[0-9A-Z_.(/=:[#-]|std|http|ssh|ftp',
         ignoreInlineComments: true,
         ignoreConsecutiveComments: true,
       },
@@ -135,13 +150,7 @@ module.exports = {
         ignorePattern: '.*',
       },
     }],
-    'comma-dangle': ['error', {
-      arrays: 'always-multiline',
-      exports: 'only-multiline',
-      functions: 'only-multiline',
-      imports: 'only-multiline',
-      objects: 'only-multiline',
-    }],
+    'comma-dangle': ['error', 'always-multiline'],
     'comma-spacing': 'error',
     'comma-style': 'error',
     'computed-property-spacing': 'error',
@@ -162,9 +171,9 @@ module.exports = {
       ObjectExpression: 'first',
       SwitchCase: 1,
     }],
-    'key-spacing': ['error', { mode: 'strict' }],
+    'key-spacing': 'error',
     'keyword-spacing': 'error',
-    'linebreak-style': ['error', 'unix'],
+    'linebreak-style': 'error',
     'max-len': ['error', {
       code: 120,
       ignorePattern: '^// Flags:',
@@ -178,7 +187,7 @@ module.exports = {
     'no-constant-condition': ['error', { checkLoops: false }],
     'no-constructor-return': 'error',
     'no-duplicate-imports': 'error',
-    'no-else-return': ['error', { allowElseIf: true }],
+    'no-else-return': 'error',
     'no-extra-parens': ['error', 'functions'],
     'no-lonely-if': 'error',
     'no-mixed-requires': 'error',
@@ -240,8 +249,13 @@ module.exports = {
         selector: "CallExpression[callee.name='isNaN']",
         message: 'Use Number.isNaN() instead of the global isNaN() function.',
       },
+      {
+        // TODO(@panva): move this to no-restricted-properties
+        // when https://github.com/eslint/eslint/issues/16412 is fixed
+        selector: "Identifier[name='webcrypto']",
+        message: 'Use `globalThis.crypto`.',
+      },
     ],
-    'no-return-await': 'error',
     'no-self-compare': 'error',
     'no-tabs': 'error',
     'no-template-curly-in-string': 'error',
@@ -285,7 +299,7 @@ module.exports = {
       named: 'never',
       asyncArrow: 'always',
     }],
-    'space-in-parens': ['error', 'never'],
+    'space-in-parens': 'error',
     'space-infix-ops': 'error',
     'space-unary-ops': 'error',
     'spaced-comment': ['error', 'always', {
@@ -307,15 +321,16 @@ module.exports = {
     'jsdoc/newline-after-description': 'off',
     'jsdoc/require-returns-description': 'off',
     'jsdoc/valid-types': 'off',
+    'jsdoc/no-defaults': 'off',
     'jsdoc/no-undefined-types': 'off',
     'jsdoc/require-param': 'off',
     'jsdoc/check-tag-names': 'off',
     'jsdoc/require-returns': 'off',
-    'jsdoc/require-property-description': 'off',
 
     // Custom rules from eslint-plugin-node-core
     'node-core/no-unescaped-regexp-dot': 'error',
     'node-core/no-duplicate-requires': 'error',
+    'node-core/prefer-proto': 'error',
   },
   globals: {
     ByteLengthQueuingStrategy: 'readable',
@@ -328,6 +343,7 @@ module.exports = {
     DecompressionStream: 'readable',
     fetch: 'readable',
     FormData: 'readable',
+    navigator: 'readable',
     ReadableStream: 'readable',
     ReadableStreamDefaultReader: 'readable',
     ReadableStreamBYOBReader: 'readable',
@@ -344,5 +360,6 @@ module.exports = {
     WritableStream: 'readable',
     WritableStreamDefaultWriter: 'readable',
     WritableStreamDefaultController: 'readable',
+    WebSocket: 'readable',
   },
 };

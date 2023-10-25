@@ -18,7 +18,7 @@ function createTimingInfo({
   endTime = 0,
   encodedBodySize = 0,
   decodedBodySize = 0,
-  finalConnectionTimingInfo = null
+  finalConnectionTimingInfo = null,
 }) {
   if (finalConnectionTimingInfo !== null) {
     finalConnectionTimingInfo.domainLookupStartTime =
@@ -61,7 +61,7 @@ function test() {
     'http://localhost:8080',
     'fetch',
     {},
-    ''
+    '',
   );
 }
 
@@ -72,6 +72,6 @@ function main({ n, observe }) {
   obs.observe({ entryTypes: [observe], buffered: true });
 
   bench.start();
-  for (let i = 0; i < 1e5; i++)
+  for (let i = 0; i < n; i++)
     test();
 }

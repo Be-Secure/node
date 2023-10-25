@@ -31,7 +31,7 @@
 #include "include/v8-initialization.h"
 #include "include/v8-template.h"
 #include "src/init/v8.h"
-#include "test/unittests/test-utils.h"
+#include "test/unittests/heap/heap-utils.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
 namespace v8 {
@@ -145,8 +145,7 @@ void DeclarationContext::Check(const char* source, int get, int set, int query,
   InitializeIfNeeded();
   // A retry after a GC may pollute the counts, so perform gc now
   // to avoid that.
-  i_isolate()->heap()->CollectGarbage(i::NEW_SPACE,
-                                      i::GarbageCollectionReason::kTesting);
+  InvokeMinorGC(i_isolate());
   HandleScope scope(isolate_);
   TryCatch catcher(isolate_);
   catcher.SetVerbose(true);
@@ -175,8 +174,7 @@ void DeclarationContext::Check(const char* source, int get, int set, int query,
     }
   }
   // Clean slate for the next test.
-  i_isolate()->heap()->CollectAllAvailableGarbage(
-      i::GarbageCollectionReason::kTesting);
+  InvokeMemoryReducingMajorGCs(i_isolate());
 }
 
 void DeclarationContext::HandleGet(
@@ -466,7 +464,7 @@ TEST_F(DeclsTest, CrossScriptReferences) {
 }
 
 TEST_F(DeclsTest, CrossScriptReferences_Simple) {
-  i::FLAG_use_strict = true;
+  i::v8_flags.use_strict = true;
 
   HandleScope scope(isolate());
 
@@ -478,7 +476,7 @@ TEST_F(DeclsTest, CrossScriptReferences_Simple) {
 }
 
 TEST_F(DeclsTest, CrossScriptReferences_Simple2) {
-  i::FLAG_use_strict = true;
+  i::v8_flags.use_strict = true;
 
   HandleScope scope(isolate());
 
@@ -657,7 +655,7 @@ TEST_F(DeclsTest, CrossScriptReferencesHarmonyRegress) {
 }
 
 TEST_F(DeclsTest, GlobalLexicalOSR) {
-  i::FLAG_use_strict = true;
+  i::v8_flags.use_strict = true;
 
   HandleScope scope(isolate());
   SimpleContext context;
@@ -680,7 +678,7 @@ TEST_F(DeclsTest, GlobalLexicalOSR) {
 }
 
 TEST_F(DeclsTest, CrossScriptConflicts) {
-  i::FLAG_use_strict = true;
+  i::v8_flags.use_strict = true;
 
   HandleScope scope(isolate());
 
@@ -805,7 +803,7 @@ TEST_F(DeclsTest, CrossScriptStaticLookupUndeclared) {
 }
 
 TEST_F(DeclsTest, CrossScriptLoadICs) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
 
   HandleScope handle_scope(isolate());
 
@@ -863,7 +861,7 @@ TEST_F(DeclsTest, CrossScriptLoadICs) {
 }
 
 TEST_F(DeclsTest, CrossScriptStoreICs) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
 
   HandleScope handle_scope(isolate());
 
@@ -932,7 +930,7 @@ TEST_F(DeclsTest, CrossScriptStoreICs) {
 }
 
 TEST_F(DeclsTest, CrossScriptAssignmentToConst) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
 
   HandleScope handle_scope(isolate());
 
@@ -953,7 +951,7 @@ TEST_F(DeclsTest, CrossScriptAssignmentToConst) {
 }
 
 TEST_F(DeclsTest, Regress425510) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
 
   HandleScope handle_scope(isolate());
 
@@ -969,7 +967,7 @@ TEST_F(DeclsTest, Regress425510) {
 }
 
 TEST_F(DeclsTest, Regress3941) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
 
   HandleScope handle_scope(isolate());
 
@@ -1009,7 +1007,7 @@ TEST_F(DeclsTest, Regress3941) {
 }
 
 TEST_F(DeclsTest, Regress3941_Reads) {
-  i::FLAG_allow_natives_syntax = true;
+  i::v8_flags.allow_natives_syntax = true;
 
   HandleScope handle_scope(isolate());
 

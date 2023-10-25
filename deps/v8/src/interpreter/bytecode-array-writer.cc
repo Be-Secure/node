@@ -31,7 +31,8 @@ BytecodeArrayWriter::BytecodeArrayWriter(
       last_bytecode_(Bytecode::kIllegal),
       last_bytecode_offset_(0),
       last_bytecode_had_source_info_(false),
-      elide_noneffectful_bytecodes_(FLAG_ignition_elide_noneffectful_bytecodes),
+      elide_noneffectful_bytecodes_(
+          v8_flags.ignition_elide_noneffectful_bytecodes),
       exit_seen_in_block_(false) {
   bytecodes_.reserve(512);  // Derived via experimentation.
 }
@@ -81,17 +82,17 @@ template EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
         LocalIsolate* isolate);
 
 #ifdef DEBUG
-int BytecodeArrayWriter::CheckBytecodeMatches(BytecodeArray bytecode) {
+int BytecodeArrayWriter::CheckBytecodeMatches(Tagged<BytecodeArray> bytecode) {
   int mismatches = false;
   int bytecode_size = static_cast<int>(bytecodes()->size());
-  const byte* bytecode_ptr = &bytecodes()->front();
-  if (bytecode_size != bytecode.length()) mismatches = true;
+  const uint8_t* bytecode_ptr = &bytecodes()->front();
+  if (bytecode_size != bytecode->length()) mismatches = true;
 
   // If there's a mismatch only in the length of the bytecode (very unlikely)
   // then the first mismatch will be the first extra bytecode.
-  int first_mismatch = std::min(bytecode_size, bytecode.length());
+  int first_mismatch = std::min(bytecode_size, bytecode->length());
   for (int i = 0; i < first_mismatch; ++i) {
-    if (bytecode_ptr[i] != bytecode.get(i)) {
+    if (bytecode_ptr[i] != bytecode->get(i)) {
       mismatches = true;
       first_mismatch = i;
       break;

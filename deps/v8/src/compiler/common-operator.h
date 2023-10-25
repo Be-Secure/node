@@ -13,6 +13,7 @@
 #include "src/compiler/frame-states.h"
 #include "src/compiler/linkage.h"
 #include "src/compiler/node-properties.h"
+#include "src/compiler/use-info.h"
 #include "src/deoptimizer/deoptimize-reason.h"
 #include "src/zone/zone-containers.h"
 
@@ -35,7 +36,11 @@ class Node;
 // (machine branch semantics). Some passes are applied both before and after
 // SimplifiedLowering, and use the BranchSemantics enum to know how branches
 // should be treated.
-enum class BranchSemantics { kJS, kMachine };
+// TODO(nicohartmann@): Need to remove BranchSemantics::kUnspecified once all
+// branch uses have been updated.
+enum class BranchSemantics { kJS, kMachine, kUnspecified };
+
+V8_EXPORT_PRIVATE std::ostream& operator<<(std::ostream&, BranchSemantics);
 
 inline BranchHint NegateBranchHint(BranchHint hint) {
   switch (hint) {
@@ -53,7 +58,6 @@ enum class TrapId : uint32_t {
 #define DEF_ENUM(Name, ...) k##Name,
   FOREACH_WASM_TRAPREASON(DEF_ENUM)
 #undef DEF_ENUM
-      kInvalid
 };
 
 inline size_t hash_value(TrapId id) { return static_cast<uint32_t>(id); }
@@ -61,6 +65,32 @@ inline size_t hash_value(TrapId id) { return static_cast<uint32_t>(id); }
 std::ostream& operator<<(std::ostream&, TrapId trap_id);
 
 TrapId TrapIdOf(const Operator* const op);
+
+class BranchParameters final {
+ public:
+  BranchParameters(BranchSemantics semantics, BranchHint hint)
+      : semantics_(semantics), hint_(hint) {}
+
+  BranchSemantics semantics() const { return semantics_; }
+  BranchHint hint() const { return hint_; }
+
+ private:
+  const BranchSemantics semantics_;
+  const BranchHint hint_;
+};
+
+bool operator==(const BranchParameters& lhs, const BranchParameters& rhs);
+inline bool operator!=(const BranchParameters& lhs,
+                       const BranchParameters& rhs) {
+  return !(lhs == rhs);
+}
+
+size_t hash_value(const BranchParameters& p);
+
+std::ostream& operator<<(std::ostream&, const BranchParameters& p);
+
+V8_EXPORT_PRIVATE const BranchParameters& BranchParametersOf(
+    const Operator* const) V8_WARN_UNUSED_RESULT;
 
 V8_EXPORT_PRIVATE BranchHint BranchHintOf(const Operator* const)
     V8_WARN_UNUSED_RESULT;
@@ -439,6 +469,35 @@ V8_EXPORT_PRIVATE std::ostream& operator<<(std::ostream& out,
 V8_EXPORT_PRIVATE const SLVerifierHintParameters& SLVerifierHintParametersOf(
     const Operator* op) V8_WARN_UNUSED_RESULT;
 
+class ExitMachineGraphParameters final {
+ public:
+  ExitMachineGraphParameters(MachineRepresentation output_representation,
+                             Type output_type)
+      : output_representation_(output_representation),
+        output_type_(output_type) {}
+
+  MachineRepresentation output_representation() const {
+    return output_representation_;
+  }
+
+  const Type& output_type() const { return output_type_; }
+
+ private:
+  const MachineRepresentation output_representation_;
+  const Type output_type_;
+};
+
+V8_EXPORT_PRIVATE bool operator==(const ExitMachineGraphParameters& lhs,
+                                  const ExitMachineGraphParameters& rhs);
+
+size_t hash_value(const ExitMachineGraphParameters& p);
+
+V8_EXPORT_PRIVATE std::ostream& operator<<(std::ostream& os,
+                                           const ExitMachineGraphParameters& p);
+
+V8_EXPORT_PRIVATE const ExitMachineGraphParameters&
+ExitMachineGraphParametersOf(const Operator* op) V8_WARN_UNUSED_RESULT;
+
 // Interface for building common operators that can be used at any level of IR,
 // including JavaScript, mid-level, and low-level.
 class V8_EXPORT_PRIVATE CommonOperatorBuilder final
@@ -453,6 +512,13 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
   // expected to not survive dead code elimination.
   const Operator* Plug();
 
+  // Chained operator serves as a temporary solution to fix allocating operators
+  // at a specific position in the effect and control chain during
+  // effect control linearization, such that its position is non-floating
+  // and cannot interfere with other inlined allocations when recomputing a
+  // schedule (e.g. in Turboshaft's graph builder) when regions are gone.
+  const Operator* Chained(const Operator* op);
+
   const Operator* Dead();
   const Operator* DeadValue(MachineRepresentation rep);
   const Operator* Unreachable();
@@ -464,7 +530,11 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
       const Operator* semantics,
       const base::Optional<Type>& override_output_type);
   const Operator* End(size_t control_input_count);
-  const Operator* Branch(BranchHint = BranchHint::kNone);
+  // TODO(nicohartmann@): Remove the default argument for {semantics} once all
+  // uses are updated.
+  const Operator* Branch(
+      BranchHint = BranchHint::kNone,
+      BranchSemantics semantics = BranchSemantics::kUnspecified);
   const Operator* IfTrue();
   const Operator* IfFalse();
   const Operator* IfSuccess();
@@ -480,8 +550,8 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
                                FeedbackSource const& feedback);
   const Operator* DeoptimizeUnless(DeoptimizeReason reason,
                                    FeedbackSource const& feedback);
-  const Operator* TrapIf(TrapId trap_id);
-  const Operator* TrapUnless(TrapId trap_id);
+  const Operator* TrapIf(TrapId trap_id, bool has_frame_state);
+  const Operator* TrapUnless(TrapId trap_id, bool has_frame_state);
   const Operator* Return(int value_input_count = 1);
   const Operator* Terminate();
 
@@ -536,7 +606,9 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
   const Operator* Projection(size_t index);
   const Operator* Retain();
   const Operator* TypeGuard(Type type);
-  const Operator* FoldConstant();
+  const Operator* EnterMachineGraph(UseInfo use_info);
+  const Operator* ExitMachineGraph(MachineRepresentation output_representation,
+                                   Type output_type);
 
   // Constructs a new merge or phi operator with the same opcode as {op}, but
   // with {size} inputs.
@@ -612,7 +684,8 @@ class FrameState : public CommonNodeWrapperBase {
   Node* parameters() const {
     Node* n = node()->InputAt(kFrameStateParametersInput);
     DCHECK(n->opcode() == IrOpcode::kStateValues ||
-           n->opcode() == IrOpcode::kTypedStateValues);
+           n->opcode() == IrOpcode::kTypedStateValues ||
+           n->opcode() == IrOpcode::kDeadValue);
     return n;
   }
   Node* locals() const {

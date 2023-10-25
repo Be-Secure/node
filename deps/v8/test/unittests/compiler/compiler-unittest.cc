@@ -34,12 +34,12 @@ static Handle<Object> GetGlobalProperty(const char* name) {
       .ToHandleChecked();
 }
 
-static void SetGlobalProperty(const char* name, Object value) {
+static void SetGlobalProperty(const char* name, Tagged<Object> value) {
   Isolate* isolate = reinterpret_cast<i::Isolate*>(v8::Isolate::GetCurrent());
   Handle<Object> object(value, isolate);
   Handle<String> internalized_name =
       isolate->factory()->InternalizeUtf8String(name);
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   Runtime::SetObjectProperty(isolate, global, internalized_name, object,
                              StoreOrigin::kMaybeKeyed, Just(kDontThrow))
       .Check();
@@ -68,11 +68,11 @@ static double Inc(Isolate* isolate, int x) {
   Handle<JSFunction> fun = Compile(buffer.begin());
   if (fun.is_null()) return -1;
 
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   Execution::CallScript(isolate, fun, global,
                         isolate->factory()->empty_fixed_array())
       .Check();
-  return GetGlobalProperty("result")->Number();
+  return Object::Number(*GetGlobalProperty("result"));
 }
 
 TEST_F(CompilerTest, Inc) {
@@ -86,11 +86,11 @@ static double Add(Isolate* isolate, int x, int y) {
 
   SetGlobalProperty("x", Smi::FromInt(x));
   SetGlobalProperty("y", Smi::FromInt(y));
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   Execution::CallScript(isolate, fun, global,
                         isolate->factory()->empty_fixed_array())
       .Check();
-  return GetGlobalProperty("result")->Number();
+  return Object::Number(*GetGlobalProperty("result"));
 }
 
 TEST_F(CompilerTest, Add) {
@@ -103,11 +103,11 @@ static double Abs(Isolate* isolate, int x) {
   if (fun.is_null()) return -1;
 
   SetGlobalProperty("x", Smi::FromInt(x));
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   Execution::CallScript(isolate, fun, global,
                         isolate->factory()->empty_fixed_array())
       .Check();
-  return GetGlobalProperty("result")->Number();
+  return Object::Number(*GetGlobalProperty("result"));
 }
 
 TEST_F(CompilerTest, Abs) {
@@ -121,11 +121,11 @@ static double Sum(Isolate* isolate, int n) {
   if (fun.is_null()) return -1;
 
   SetGlobalProperty("n", Smi::FromInt(n));
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   Execution::CallScript(isolate, fun, global,
                         isolate->factory()->empty_fixed_array())
       .Check();
-  return GetGlobalProperty("result")->Number();
+  return Object::Number(*GetGlobalProperty("result"));
 }
 
 TEST_F(CompilerTest, Sum) {
@@ -145,7 +145,7 @@ TEST_F(CompilerPrintTest, Print) {
   const char* source = "for (n = 0; n < 100; ++n) print(n, 1, 2);";
   Handle<JSFunction> fun = Compile(source);
   if (fun.is_null()) return;
-  Handle<JSObject> global(i_isolate()->context().global_object(), i_isolate());
+  Handle<JSObject> global(i_isolate()->context()->global_object(), i_isolate());
   Execution::CallScript(i_isolate(), fun, global,
                         i_isolate()->factory()->empty_fixed_array())
       .Check();
@@ -176,11 +176,11 @@ TEST_F(CompilerTest, Stuff) {
 
   Handle<JSFunction> fun = Compile(source);
   EXPECT_TRUE(!fun.is_null());
-  Handle<JSObject> global(i_isolate()->context().global_object(), i_isolate());
+  Handle<JSObject> global(i_isolate()->context()->global_object(), i_isolate());
   Execution::CallScript(i_isolate(), fun, global,
                         i_isolate()->factory()->empty_fixed_array())
       .Check();
-  EXPECT_EQ(511.0, GetGlobalProperty("r")->Number());
+  EXPECT_EQ(511.0, Object::Number(*GetGlobalProperty("r")));
 }
 
 TEST_F(CompilerTest, UncaughtThrow) {
@@ -190,11 +190,11 @@ TEST_F(CompilerTest, UncaughtThrow) {
   Handle<JSFunction> fun = Compile(source);
   EXPECT_TRUE(!fun.is_null());
   Isolate* isolate = fun->GetIsolate();
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   EXPECT_TRUE(Execution::CallScript(isolate, fun, global,
                                     isolate->factory()->empty_fixed_array())
                   .is_null());
-  EXPECT_EQ(42.0, isolate->pending_exception().Number());
+  EXPECT_EQ(42.0, Object::Number(isolate->pending_exception()));
 }
 
 using CompilerC2JSFramesTest = WithPrintExtensionMixin<v8::TestWithIsolate>;
@@ -206,7 +206,7 @@ using CompilerC2JSFramesTest = WithPrintExtensionMixin<v8::TestWithIsolate>;
 //   |      JS       |
 //   |   C-to-JS     |
 TEST_F(CompilerC2JSFramesTest, C2JSFrames) {
-  FLAG_expose_gc = true;
+  v8_flags.expose_gc = true;
   v8::HandleScope scope(isolate());
   const char* extension_names[2] = {
       "v8/gc", WithPrintExtensionMixin::kPrintExtensionName};
@@ -221,7 +221,7 @@ TEST_F(CompilerC2JSFramesTest, C2JSFrames) {
   Isolate* isolate = fun0->GetIsolate();
 
   // Run the generated code to populate the global object with 'foo'.
-  Handle<JSObject> global(isolate->context().global_object(), isolate);
+  Handle<JSObject> global(isolate->context()->global_object(), isolate);
   Execution::CallScript(isolate, fun0, global,
                         isolate->factory()->empty_fixed_array())
       .Check();
@@ -229,7 +229,7 @@ TEST_F(CompilerC2JSFramesTest, C2JSFrames) {
   Handle<Object> fun1 =
       JSReceiver::GetProperty(isolate, isolate->global_object(), "foo")
           .ToHandleChecked();
-  EXPECT_TRUE(fun1->IsJSFunction());
+  EXPECT_TRUE(IsJSFunction(*fun1));
 
   Handle<Object> argv[] = {
       isolate->factory()->InternalizeString(base::StaticCharVector("hello"))};
@@ -244,8 +244,7 @@ TEST_F(CompilerTest, Regression236) {
   Factory* factory = i_isolate()->factory();
   v8::HandleScope scope(isolate());
 
-  Handle<Script> script = factory->NewScript(factory->empty_string());
-  script->set_source(ReadOnlyRoots(i_isolate()->heap()).undefined_value());
+  Handle<Script> script = factory->NewScript(factory->undefined_value());
   EXPECT_EQ(-1, Script::GetLineNumber(script, 0));
   EXPECT_EQ(-1, Script::GetLineNumber(script, 100));
   EXPECT_EQ(-1, Script::GetLineNumber(script, -1));
@@ -276,8 +275,8 @@ TEST_F(CompilerTest, GetScriptLineNumber) {
 }
 
 TEST_F(CompilerTest, FeedbackVectorPreservedAcrossRecompiles) {
-  if (i::FLAG_always_turbofan || !i::FLAG_turbofan) return;
-  i::FLAG_allow_natives_syntax = true;
+  if (i::v8_flags.always_turbofan || !i::v8_flags.turbofan) return;
+  i::v8_flags.allow_natives_syntax = true;
   if (!i_isolate()->use_optimizer()) return;
   v8::HandleScope scope(isolate());
 
@@ -300,9 +299,9 @@ TEST_F(CompilerTest, FeedbackVectorPreservedAcrossRecompiles) {
   FeedbackSlot slot_for_a(0);
   MaybeObject object = feedback_vector->Get(slot_for_a);
   {
-    HeapObject heap_object;
-    EXPECT_TRUE(object->GetHeapObjectIfWeak(&heap_object));
-    EXPECT_TRUE(heap_object.IsJSFunction());
+    Tagged<HeapObject> heap_object;
+    EXPECT_TRUE(object.GetHeapObjectIfWeak(&heap_object));
+    EXPECT_TRUE(IsJSFunction(heap_object));
   }
 
   RunJS("%OptimizeFunctionOnNextCall(f); f(fun1);");
@@ -310,16 +309,17 @@ TEST_F(CompilerTest, FeedbackVectorPreservedAcrossRecompiles) {
   // Verify that the feedback is still "gathered" despite a recompilation
   // of the full code.
   EXPECT_TRUE(f->HasAttachedOptimizedCode());
-  object = f->feedback_vector().Get(slot_for_a);
+  object = f->feedback_vector()->Get(slot_for_a);
   {
-    HeapObject heap_object;
-    EXPECT_TRUE(object->GetHeapObjectIfWeak(&heap_object));
-    EXPECT_TRUE(heap_object.IsJSFunction());
+    Tagged<HeapObject> heap_object;
+    EXPECT_TRUE(object.GetHeapObjectIfWeak(&heap_object));
+    EXPECT_TRUE(IsJSFunction(heap_object));
   }
 }
 
 TEST_F(CompilerTest, FeedbackVectorUnaffectedByScopeChanges) {
-  if (i::FLAG_always_turbofan || !i::FLAG_lazy || i::FLAG_lite_mode) {
+  if (i::v8_flags.always_turbofan || !i::v8_flags.lazy ||
+      i::v8_flags.lite_mode) {
     return;
   }
   v8::HandleScope scope(isolate());
@@ -346,19 +346,19 @@ TEST_F(CompilerTest, FeedbackVectorUnaffectedByScopeChanges) {
 
   // If we are compiling lazily then it should not be compiled, and so no
   // feedback vector allocated yet.
-  EXPECT_TRUE(!f->shared().is_compiled());
+  EXPECT_TRUE(!f->shared()->is_compiled());
 
   RunJS("morphing_call();");
 
   // Now a feedback vector / closure feedback cell array is allocated.
-  EXPECT_TRUE(f->shared().is_compiled());
+  EXPECT_TRUE(f->shared()->is_compiled());
   EXPECT_TRUE(f->has_feedback_vector() || f->has_closure_feedback_cell_array());
 }
 
 // Test that optimized code for different closures is actually shared.
 TEST_F(CompilerTest, OptimizedCodeSharing1) {
-  FLAG_stress_compaction = false;
-  FLAG_allow_natives_syntax = true;
+  v8_flags.stress_compaction = false;
+  v8_flags.allow_natives_syntax = true;
   v8::HandleScope scope(isolate());
   for (int i = 0; i < 3; i++) {
     context()
@@ -399,7 +399,7 @@ TEST_F(CompilerTest, OptimizedCodeSharing1) {
 }
 
 TEST_F(CompilerTest, CompileFunction) {
-  if (i::FLAG_always_turbofan) return;
+  if (i::v8_flags.always_turbofan) return;
   v8::HandleScope scope(isolate());
   RunJS("var r = 10;");
   v8::Local<v8::Object> math = v8::Local<v8::Object>::Cast(
@@ -612,10 +612,12 @@ TEST_F(CompilerTest, CompileFunctionScriptOrigin) {
       v8::ScriptCompiler::CompileFunction(context(), &script_source)
           .ToLocalChecked();
   EXPECT_TRUE(!fun.IsEmpty());
-  v8::Local<v8::UnboundScript> script =
-      fun->GetUnboundScript().ToLocalChecked();
-  EXPECT_TRUE(!script.IsEmpty());
-  EXPECT_TRUE(script->GetScriptName()->StrictEquals(NewString("test")));
+  auto fun_i = i::Handle<i::JSFunction>::cast(Utils::OpenHandle(*fun));
+  EXPECT_TRUE(IsSharedFunctionInfo(fun_i->shared()));
+  EXPECT_TRUE(Utils::ToLocal(
+                  i::handle(i::Script::cast(fun_i->shared()->script())->name(),
+                            i_isolate()))
+                  ->StrictEquals(NewString("test")));
   v8::TryCatch try_catch(isolate());
   isolate()->SetCaptureStackTraceForUncaughtExceptions(true);
   EXPECT_TRUE(fun->Call(context(), context()->Global(), 0, nullptr).IsEmpty());
@@ -724,9 +726,9 @@ TEST_F(CompilerTest, CompileFunctionFunctionToString) {
 }
 
 TEST_F(CompilerTest, InvocationCount) {
-  if (FLAG_lite_mode) return;
-  FLAG_allow_natives_syntax = true;
-  FLAG_always_turbofan = false;
+  if (v8_flags.lite_mode) return;
+  v8_flags.allow_natives_syntax = true;
+  v8_flags.always_turbofan = false;
   v8::HandleScope scope(isolate());
 
   RunJS(
@@ -736,17 +738,17 @@ TEST_F(CompilerTest, InvocationCount) {
       "%EnsureFeedbackVectorForFunction(foo);"
       "foo();");
   Handle<JSFunction> foo = Handle<JSFunction>::cast(GetGlobalProperty("foo"));
-  EXPECT_EQ(1, foo->feedback_vector().invocation_count());
+  EXPECT_EQ(1, foo->feedback_vector()->invocation_count());
   RunJS("foo()");
-  EXPECT_EQ(2, foo->feedback_vector().invocation_count());
+  EXPECT_EQ(2, foo->feedback_vector()->invocation_count());
   RunJS("bar()");
-  EXPECT_EQ(2, foo->feedback_vector().invocation_count());
+  EXPECT_EQ(2, foo->feedback_vector()->invocation_count());
   RunJS("foo(); foo()");
-  EXPECT_EQ(4, foo->feedback_vector().invocation_count());
+  EXPECT_EQ(4, foo->feedback_vector()->invocation_count());
 }
 
 TEST_F(CompilerTest, ShallowEagerCompilation) {
-  i::FLAG_always_turbofan = false;
+  i::v8_flags.always_turbofan = false;
   v8::HandleScope scope(isolate());
   v8::Local<v8::String> source = NewString(
       "function f(x) {"
@@ -766,7 +768,7 @@ TEST_F(CompilerTest, ShallowEagerCompilation) {
 }
 
 TEST_F(CompilerTest, DeepEagerCompilation) {
-  i::FLAG_always_turbofan = false;
+  i::v8_flags.always_turbofan = false;
   v8::HandleScope scope(isolate());
   v8::Local<v8::String> source = NewString(
       "function f(x) {"
@@ -792,7 +794,7 @@ TEST_F(CompilerTest, DeepEagerCompilation) {
 }
 
 TEST_F(CompilerTest, DeepEagerCompilationPeakMemory) {
-  i::FLAG_always_turbofan = false;
+  i::v8_flags.always_turbofan = false;
   v8::HandleScope scope(isolate());
   v8::Local<v8::String> source = NewString(
       "function f() {"
@@ -917,7 +919,7 @@ TEST_F(CompilerTest, ProfilerEnabledDuringBackgroundCompile) {
           .ToLocalChecked();
 
   i::Handle<i::Object> obj = Utils::OpenHandle(*script);
-  EXPECT_TRUE(i::JSFunction::cast(*obj).shared().AreSourcePositionsAvailable(
+  EXPECT_TRUE(i::JSFunction::cast(*obj)->shared()->AreSourcePositionsAvailable(
       i_isolate()));
 
   cpu_profiler->StopProfiling(profile);

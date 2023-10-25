@@ -26,7 +26,7 @@ our %config = (
     "CFLAGS" => [
         "/W3 /wd4090 /nologo /O2"
     ],
-    "CPP" => "\"\$(CC)\" /EP /C",
+    "CPP" => "\$(CC) /EP /C",
     "CPPDEFINES" => [],
     "CPPFLAGS" => [],
     "CPPINCLUDES" => [],
@@ -166,7 +166,7 @@ our %config = (
     ],
     "dynamic_engines" => "0",
     "ex_libs" => [],
-    "full_version" => "3.0.5+quic",
+    "full_version" => "3.0.10+quic",
     "includes" => [],
     "lflags" => [],
     "lib_defines" => [
@@ -175,7 +175,7 @@ our %config = (
     "libdir" => "",
     "major" => "3",
     "makedep_scheme" => "VC",
-    "makedepcmd" => "\"\$(CC)\" /Zs /showIncludes",
+    "makedepcmd" => "\$(CC) /Zs /showIncludes",
     "minor" => "0",
     "openssl_api_defines" => [
         "OPENSSL_CONFIGURED_API=30000"
@@ -218,10 +218,10 @@ our %config = (
     ],
     "openssldir" => "",
     "options" => "enable-ssl-trace enable-fips no-afalgeng no-asan no-asm no-buildtest-c++ no-comp no-crypto-mdebug no-crypto-mdebug-backtrace no-devcryptoeng no-dynamic-engine no-ec_nistp_64_gcc_128 no-egd no-external-tests no-fuzz-afl no-fuzz-libfuzzer no-ktls no-loadereng no-md2 no-msan no-rc5 no-sctp no-shared no-ssl3 no-ssl3-method no-trace no-ubsan no-unit-test no-uplink no-weak-ssl-ciphers no-zlib no-zlib-dynamic",
-    "patch" => "5",
+    "patch" => "10",
     "perl_archname" => "x86_64-linux-gnu-thread-multi",
     "perl_cmd" => "/usr/bin/perl",
-    "perl_version" => "5.30.0",
+    "perl_version" => "5.34.0",
     "perlargv" => [
         "no-comp",
         "no-shared",
@@ -271,11 +271,11 @@ our %config = (
     "prerelease" => "",
     "processor" => "",
     "rc4_int" => "unsigned int",
-    "release_date" => "5 Jul 2022",
+    "release_date" => "1 Aug 2023",
     "shlib_version" => "81.3",
     "sourcedir" => ".",
     "target" => "VC-WIN64A",
-    "version" => "3.0.5"
+    "version" => "3.0.10"
 );
 our %target = (
     "AR" => "lib",
@@ -284,13 +284,13 @@ our %target = (
     "ASFLAGS" => "-g",
     "CC" => "cl",
     "CFLAGS" => "/W3 /wd4090 /nologo /O2",
-    "CPP" => "\"\$(CC)\" /EP /C",
+    "CPP" => "\$(CC) /EP /C",
     "HASHBANGPERL" => "/usr/bin/env perl",
     "LD" => "link",
     "LDFLAGS" => "/nologo /debug",
     "MT" => "mt",
     "MTFLAGS" => "-nologo",
-    "RANLIB" => "CODE(0x55b6debbcf08)",
+    "RANLIB" => "CODE(0x55ad7db3afe8)",
     "RC" => "rc",
     "_conf_fname_int" => [
         "Configurations/00-base-templates.conf",
@@ -348,7 +348,7 @@ our %target = (
         "L_ENDIAN"
     ],
     "makedep_scheme" => "VC",
-    "makedepcmd" => "\"\$(CC)\" /Zs /showIncludes",
+    "makedepcmd" => "\$(CC) /Zs /showIncludes",
     "module_cflags" => "",
     "module_cxxflags" => undef,
     "module_ldflags" => "/dll",
@@ -1322,10 +1322,16 @@ our %unified_info = (
             "test/exptest" => {
                 "noinst" => "1"
             },
+            "test/ext_internal_test" => {
+                "noinst" => "1"
+            },
             "test/fatalerrtest" => {
                 "noinst" => "1"
             },
             "test/ffc_internal_test" => {
+                "noinst" => "1"
+            },
+            "test/fips_version_test" => {
                 "noinst" => "1"
             },
             "test/gmdifftest" => {
@@ -1368,6 +1374,9 @@ our %unified_info = (
                 "noinst" => "1"
             },
             "test/namemap_internal_test" => {
+                "noinst" => "1"
+            },
+            "test/nodefltctxtest" => {
                 "noinst" => "1"
             },
             "test/ocspapitest" => {
@@ -1440,6 +1449,9 @@ our %unified_info = (
                 "noinst" => "1"
             },
             "test/provider_test" => {
+                "noinst" => "1"
+            },
+            "test/punycode_test" => {
                 "noinst" => "1"
             },
             "test/rand_status_test" => {
@@ -1551,6 +1563,9 @@ our %unified_info = (
                 "noinst" => "1"
             },
             "test/tls13encryptiontest" => {
+                "noinst" => "1"
+            },
+            "test/trace_api_test" => {
                 "noinst" => "1"
             },
             "test/uitest" => {
@@ -2235,6 +2250,9 @@ our %unified_info = (
         "doc/html/man3/BIO_s_core.html" => [
             "doc/man3/BIO_s_core.pod"
         ],
+        "doc/html/man3/BIO_s_datagram.html" => [
+            "doc/man3/BIO_s_datagram.pod"
+        ],
         "doc/html/man3/BIO_s_fd.html" => [
             "doc/man3/BIO_s_fd.pod"
         ],
@@ -2490,6 +2508,9 @@ our %unified_info = (
         "doc/html/man3/ECDSA_SIG_new.html" => [
             "doc/man3/ECDSA_SIG_new.pod"
         ],
+        "doc/html/man3/ECDSA_sign.html" => [
+            "doc/man3/ECDSA_sign.pod"
+        ],
         "doc/html/man3/ECPKParameters_print.html" => [
             "doc/man3/ECPKParameters_print.pod"
         ],
@@ -2615,6 +2636,9 @@ our %unified_info = (
         ],
         "doc/html/man3/EVP_PKEY_CTX_get0_libctx.html" => [
             "doc/man3/EVP_PKEY_CTX_get0_libctx.pod"
+        ],
+        "doc/html/man3/EVP_PKEY_CTX_get0_pkey.html" => [
+            "doc/man3/EVP_PKEY_CTX_get0_pkey.pod"
         ],
         "doc/html/man3/EVP_PKEY_CTX_new.html" => [
             "doc/man3/EVP_PKEY_CTX_new.pod"
@@ -2868,6 +2892,9 @@ our %unified_info = (
         "doc/html/man3/OPENSSL_fork_prepare.html" => [
             "doc/man3/OPENSSL_fork_prepare.pod"
         ],
+        "doc/html/man3/OPENSSL_gmtime.html" => [
+            "doc/man3/OPENSSL_gmtime.pod"
+        ],
         "doc/html/man3/OPENSSL_hexchar2int.html" => [
             "doc/man3/OPENSSL_hexchar2int.pod"
         ],
@@ -2897,6 +2924,12 @@ our %unified_info = (
         ],
         "doc/html/man3/OPENSSL_strcasecmp.html" => [
             "doc/man3/OPENSSL_strcasecmp.pod"
+        ],
+        "doc/html/man3/OSSL_ALGORITHM.html" => [
+            "doc/man3/OSSL_ALGORITHM.pod"
+        ],
+        "doc/html/man3/OSSL_CALLBACK.html" => [
+            "doc/man3/OSSL_CALLBACK.pod"
         ],
         "doc/html/man3/OSSL_CMP_CTX_new.html" => [
             "doc/man3/OSSL_CMP_CTX_new.pod"
@@ -2958,6 +2991,9 @@ our %unified_info = (
         "doc/html/man3/OSSL_DECODER_from_bio.html" => [
             "doc/man3/OSSL_DECODER_from_bio.pod"
         ],
+        "doc/html/man3/OSSL_DISPATCH.html" => [
+            "doc/man3/OSSL_DISPATCH.pod"
+        ],
         "doc/html/man3/OSSL_ENCODER.html" => [
             "doc/man3/OSSL_ENCODER.pod"
         ],
@@ -2981,6 +3017,9 @@ our %unified_info = (
         ],
         "doc/html/man3/OSSL_HTTP_transfer.html" => [
             "doc/man3/OSSL_HTTP_transfer.pod"
+        ],
+        "doc/html/man3/OSSL_ITEM.html" => [
+            "doc/man3/OSSL_ITEM.pod"
         ],
         "doc/html/man3/OSSL_LIB_CTX.html" => [
             "doc/man3/OSSL_LIB_CTX.pod"
@@ -3894,6 +3933,9 @@ our %unified_info = (
         "doc/html/man5/x509v3_config.html" => [
             "doc/man5/x509v3_config.pod"
         ],
+        "doc/html/man7/EVP_ASYM_CIPHER-RSA.html" => [
+            "doc/man7/EVP_ASYM_CIPHER-RSA.pod"
+        ],
         "doc/html/man7/EVP_ASYM_CIPHER-SM2.html" => [
             "doc/man7/EVP_ASYM_CIPHER-SM2.pod"
         ],
@@ -3920,6 +3962,9 @@ our %unified_info = (
         ],
         "doc/html/man7/EVP_CIPHER-IDEA.html" => [
             "doc/man7/EVP_CIPHER-IDEA.pod"
+        ],
+        "doc/html/man7/EVP_CIPHER-NULL.html" => [
+            "doc/man7/EVP_CIPHER-NULL.pod"
         ],
         "doc/html/man7/EVP_CIPHER-RC2.html" => [
             "doc/man7/EVP_CIPHER-RC2.pod"
@@ -4028,6 +4073,9 @@ our %unified_info = (
         ],
         "doc/html/man7/EVP_MD-MDC2.html" => [
             "doc/man7/EVP_MD-MDC2.pod"
+        ],
+        "doc/html/man7/EVP_MD-NULL.html" => [
+            "doc/man7/EVP_MD-NULL.pod"
         ],
         "doc/html/man7/EVP_MD-RIPEMD160.html" => [
             "doc/man7/EVP_MD-RIPEMD160.pod"
@@ -4581,6 +4629,9 @@ our %unified_info = (
         "doc/man/man3/BIO_s_core.3" => [
             "doc/man3/BIO_s_core.pod"
         ],
+        "doc/man/man3/BIO_s_datagram.3" => [
+            "doc/man3/BIO_s_datagram.pod"
+        ],
         "doc/man/man3/BIO_s_fd.3" => [
             "doc/man3/BIO_s_fd.pod"
         ],
@@ -4836,6 +4887,9 @@ our %unified_info = (
         "doc/man/man3/ECDSA_SIG_new.3" => [
             "doc/man3/ECDSA_SIG_new.pod"
         ],
+        "doc/man/man3/ECDSA_sign.3" => [
+            "doc/man3/ECDSA_sign.pod"
+        ],
         "doc/man/man3/ECPKParameters_print.3" => [
             "doc/man3/ECPKParameters_print.pod"
         ],
@@ -4961,6 +5015,9 @@ our %unified_info = (
         ],
         "doc/man/man3/EVP_PKEY_CTX_get0_libctx.3" => [
             "doc/man3/EVP_PKEY_CTX_get0_libctx.pod"
+        ],
+        "doc/man/man3/EVP_PKEY_CTX_get0_pkey.3" => [
+            "doc/man3/EVP_PKEY_CTX_get0_pkey.pod"
         ],
         "doc/man/man3/EVP_PKEY_CTX_new.3" => [
             "doc/man3/EVP_PKEY_CTX_new.pod"
@@ -5214,6 +5271,9 @@ our %unified_info = (
         "doc/man/man3/OPENSSL_fork_prepare.3" => [
             "doc/man3/OPENSSL_fork_prepare.pod"
         ],
+        "doc/man/man3/OPENSSL_gmtime.3" => [
+            "doc/man3/OPENSSL_gmtime.pod"
+        ],
         "doc/man/man3/OPENSSL_hexchar2int.3" => [
             "doc/man3/OPENSSL_hexchar2int.pod"
         ],
@@ -5243,6 +5303,12 @@ our %unified_info = (
         ],
         "doc/man/man3/OPENSSL_strcasecmp.3" => [
             "doc/man3/OPENSSL_strcasecmp.pod"
+        ],
+        "doc/man/man3/OSSL_ALGORITHM.3" => [
+            "doc/man3/OSSL_ALGORITHM.pod"
+        ],
+        "doc/man/man3/OSSL_CALLBACK.3" => [
+            "doc/man3/OSSL_CALLBACK.pod"
         ],
         "doc/man/man3/OSSL_CMP_CTX_new.3" => [
             "doc/man3/OSSL_CMP_CTX_new.pod"
@@ -5304,6 +5370,9 @@ our %unified_info = (
         "doc/man/man3/OSSL_DECODER_from_bio.3" => [
             "doc/man3/OSSL_DECODER_from_bio.pod"
         ],
+        "doc/man/man3/OSSL_DISPATCH.3" => [
+            "doc/man3/OSSL_DISPATCH.pod"
+        ],
         "doc/man/man3/OSSL_ENCODER.3" => [
             "doc/man3/OSSL_ENCODER.pod"
         ],
@@ -5327,6 +5396,9 @@ our %unified_info = (
         ],
         "doc/man/man3/OSSL_HTTP_transfer.3" => [
             "doc/man3/OSSL_HTTP_transfer.pod"
+        ],
+        "doc/man/man3/OSSL_ITEM.3" => [
+            "doc/man3/OSSL_ITEM.pod"
         ],
         "doc/man/man3/OSSL_LIB_CTX.3" => [
             "doc/man3/OSSL_LIB_CTX.pod"
@@ -6240,6 +6312,9 @@ our %unified_info = (
         "doc/man/man5/x509v3_config.5" => [
             "doc/man5/x509v3_config.pod"
         ],
+        "doc/man/man7/EVP_ASYM_CIPHER-RSA.7" => [
+            "doc/man7/EVP_ASYM_CIPHER-RSA.pod"
+        ],
         "doc/man/man7/EVP_ASYM_CIPHER-SM2.7" => [
             "doc/man7/EVP_ASYM_CIPHER-SM2.pod"
         ],
@@ -6266,6 +6341,9 @@ our %unified_info = (
         ],
         "doc/man/man7/EVP_CIPHER-IDEA.7" => [
             "doc/man7/EVP_CIPHER-IDEA.pod"
+        ],
+        "doc/man/man7/EVP_CIPHER-NULL.7" => [
+            "doc/man7/EVP_CIPHER-NULL.pod"
         ],
         "doc/man/man7/EVP_CIPHER-RC2.7" => [
             "doc/man7/EVP_CIPHER-RC2.pod"
@@ -6374,6 +6452,9 @@ our %unified_info = (
         ],
         "doc/man/man7/EVP_MD-MDC2.7" => [
             "doc/man7/EVP_MD-MDC2.pod"
+        ],
+        "doc/man/man7/EVP_MD-NULL.7" => [
+            "doc/man7/EVP_MD-NULL.pod"
         ],
         "doc/man/man7/EVP_MD-RIPEMD160.7" => [
             "doc/man7/EVP_MD-RIPEMD160.pod"
@@ -7653,6 +7734,11 @@ our %unified_info = (
             "libcrypto",
             "test/libtestutil.a"
         ],
+        "test/ext_internal_test" => [
+            "libcrypto.a",
+            "libssl.a",
+            "test/libtestutil.a"
+        ],
         "test/fatalerrtest" => [
             "libcrypto",
             "libssl",
@@ -7660,6 +7746,10 @@ our %unified_info = (
         ],
         "test/ffc_internal_test" => [
             "libcrypto.a",
+            "test/libtestutil.a"
+        ],
+        "test/fips_version_test" => [
+            "libcrypto",
             "test/libtestutil.a"
         ],
         "test/gmdifftest" => [
@@ -7718,6 +7808,10 @@ our %unified_info = (
             "test/libtestutil.a"
         ],
         "test/namemap_internal_test" => [
+            "libcrypto.a",
+            "test/libtestutil.a"
+        ],
+        "test/nodefltctxtest" => [
             "libcrypto.a",
             "test/libtestutil.a"
         ],
@@ -7814,6 +7908,10 @@ our %unified_info = (
             "test/libtestutil.a"
         ],
         "test/provider_test" => [
+            "libcrypto.a",
+            "test/libtestutil.a"
+        ],
+        "test/punycode_test" => [
             "libcrypto.a",
             "test/libtestutil.a"
         ],
@@ -7971,6 +8069,10 @@ our %unified_info = (
         "test/tls13encryptiontest" => [
             "libcrypto.a",
             "libssl.a",
+            "test/libtestutil.a"
+        ],
+        "test/trace_api_test" => [
+            "libcrypto.a",
             "test/libtestutil.a"
         ],
         "test/uitest" => [
@@ -8406,14 +8508,12 @@ our %unified_info = (
                 "crypto/bn/libfips-lib-bn_shift.o",
                 "crypto/bn/libfips-lib-bn_sqr.o",
                 "crypto/bn/libfips-lib-bn_sqrt.o",
-                "crypto/bn/libfips-lib-bn_word.o",
-                "crypto/bn/liblegacy-lib-bn_asm.o"
+                "crypto/bn/libfips-lib-bn_word.o"
             ],
             "products" => {
                 "lib" => [
                     "libcrypto",
-                    "providers/libfips.a",
-                    "providers/liblegacy.a"
+                    "providers/libfips.a"
                 ]
             }
         },
@@ -8602,15 +8702,12 @@ our %unified_info = (
                 "crypto/des/libfips-lib-des_enc.o",
                 "crypto/des/libfips-lib-ecb3_enc.o",
                 "crypto/des/libfips-lib-fcrypt_b.o",
-                "crypto/des/libfips-lib-set_key.o",
-                "crypto/des/liblegacy-lib-des_enc.o",
-                "crypto/des/liblegacy-lib-fcrypt_b.o"
+                "crypto/des/libfips-lib-set_key.o"
             ],
             "products" => {
                 "lib" => [
                     "libcrypto",
-                    "providers/libfips.a",
-                    "providers/liblegacy.a"
+                    "providers/libfips.a"
                 ]
             }
         },
@@ -9091,15 +9188,11 @@ our %unified_info = (
             "deps" => [
                 "crypto/md5/libcrypto-lib-md5_dgst.o",
                 "crypto/md5/libcrypto-lib-md5_one.o",
-                "crypto/md5/libcrypto-lib-md5_sha1.o",
-                "crypto/md5/liblegacy-lib-md5_dgst.o",
-                "crypto/md5/liblegacy-lib-md5_one.o",
-                "crypto/md5/liblegacy-lib-md5_sha1.o"
+                "crypto/md5/libcrypto-lib-md5_sha1.o"
             ],
             "products" => {
                 "lib" => [
-                    "libcrypto",
-                    "providers/liblegacy.a"
+                    "libcrypto"
                 ]
             }
         },
@@ -9873,6 +9966,7 @@ our %unified_info = (
                 "providers/implementations/digests/libdefault-lib-md5_prov.o",
                 "providers/implementations/digests/libdefault-lib-md5_sha1_prov.o",
                 "providers/implementations/digests/libdefault-lib-null_prov.o",
+                "providers/implementations/digests/libdefault-lib-ripemd_prov.o",
                 "providers/implementations/digests/libdefault-lib-sha2_prov.o",
                 "providers/implementations/digests/libdefault-lib-sha3_prov.o",
                 "providers/implementations/digests/libdefault-lib-sm3_prov.o",
@@ -11149,6 +11243,9 @@ our %unified_info = (
         "doc/html/man3/BIO_s_core.html" => [
             "doc/man3/BIO_s_core.pod"
         ],
+        "doc/html/man3/BIO_s_datagram.html" => [
+            "doc/man3/BIO_s_datagram.pod"
+        ],
         "doc/html/man3/BIO_s_fd.html" => [
             "doc/man3/BIO_s_fd.pod"
         ],
@@ -11404,6 +11501,9 @@ our %unified_info = (
         "doc/html/man3/ECDSA_SIG_new.html" => [
             "doc/man3/ECDSA_SIG_new.pod"
         ],
+        "doc/html/man3/ECDSA_sign.html" => [
+            "doc/man3/ECDSA_sign.pod"
+        ],
         "doc/html/man3/ECPKParameters_print.html" => [
             "doc/man3/ECPKParameters_print.pod"
         ],
@@ -11529,6 +11629,9 @@ our %unified_info = (
         ],
         "doc/html/man3/EVP_PKEY_CTX_get0_libctx.html" => [
             "doc/man3/EVP_PKEY_CTX_get0_libctx.pod"
+        ],
+        "doc/html/man3/EVP_PKEY_CTX_get0_pkey.html" => [
+            "doc/man3/EVP_PKEY_CTX_get0_pkey.pod"
         ],
         "doc/html/man3/EVP_PKEY_CTX_new.html" => [
             "doc/man3/EVP_PKEY_CTX_new.pod"
@@ -11782,6 +11885,9 @@ our %unified_info = (
         "doc/html/man3/OPENSSL_fork_prepare.html" => [
             "doc/man3/OPENSSL_fork_prepare.pod"
         ],
+        "doc/html/man3/OPENSSL_gmtime.html" => [
+            "doc/man3/OPENSSL_gmtime.pod"
+        ],
         "doc/html/man3/OPENSSL_hexchar2int.html" => [
             "doc/man3/OPENSSL_hexchar2int.pod"
         ],
@@ -11811,6 +11917,12 @@ our %unified_info = (
         ],
         "doc/html/man3/OPENSSL_strcasecmp.html" => [
             "doc/man3/OPENSSL_strcasecmp.pod"
+        ],
+        "doc/html/man3/OSSL_ALGORITHM.html" => [
+            "doc/man3/OSSL_ALGORITHM.pod"
+        ],
+        "doc/html/man3/OSSL_CALLBACK.html" => [
+            "doc/man3/OSSL_CALLBACK.pod"
         ],
         "doc/html/man3/OSSL_CMP_CTX_new.html" => [
             "doc/man3/OSSL_CMP_CTX_new.pod"
@@ -11872,6 +11984,9 @@ our %unified_info = (
         "doc/html/man3/OSSL_DECODER_from_bio.html" => [
             "doc/man3/OSSL_DECODER_from_bio.pod"
         ],
+        "doc/html/man3/OSSL_DISPATCH.html" => [
+            "doc/man3/OSSL_DISPATCH.pod"
+        ],
         "doc/html/man3/OSSL_ENCODER.html" => [
             "doc/man3/OSSL_ENCODER.pod"
         ],
@@ -11895,6 +12010,9 @@ our %unified_info = (
         ],
         "doc/html/man3/OSSL_HTTP_transfer.html" => [
             "doc/man3/OSSL_HTTP_transfer.pod"
+        ],
+        "doc/html/man3/OSSL_ITEM.html" => [
+            "doc/man3/OSSL_ITEM.pod"
         ],
         "doc/html/man3/OSSL_LIB_CTX.html" => [
             "doc/man3/OSSL_LIB_CTX.pod"
@@ -12808,6 +12926,9 @@ our %unified_info = (
         "doc/html/man5/x509v3_config.html" => [
             "doc/man5/x509v3_config.pod"
         ],
+        "doc/html/man7/EVP_ASYM_CIPHER-RSA.html" => [
+            "doc/man7/EVP_ASYM_CIPHER-RSA.pod"
+        ],
         "doc/html/man7/EVP_ASYM_CIPHER-SM2.html" => [
             "doc/man7/EVP_ASYM_CIPHER-SM2.pod"
         ],
@@ -12834,6 +12955,9 @@ our %unified_info = (
         ],
         "doc/html/man7/EVP_CIPHER-IDEA.html" => [
             "doc/man7/EVP_CIPHER-IDEA.pod"
+        ],
+        "doc/html/man7/EVP_CIPHER-NULL.html" => [
+            "doc/man7/EVP_CIPHER-NULL.pod"
         ],
         "doc/html/man7/EVP_CIPHER-RC2.html" => [
             "doc/man7/EVP_CIPHER-RC2.pod"
@@ -12942,6 +13066,9 @@ our %unified_info = (
         ],
         "doc/html/man7/EVP_MD-MDC2.html" => [
             "doc/man7/EVP_MD-MDC2.pod"
+        ],
+        "doc/html/man7/EVP_MD-NULL.html" => [
+            "doc/man7/EVP_MD-NULL.pod"
         ],
         "doc/html/man7/EVP_MD-RIPEMD160.html" => [
             "doc/man7/EVP_MD-RIPEMD160.pod"
@@ -13495,6 +13622,9 @@ our %unified_info = (
         "doc/man/man3/BIO_s_core.3" => [
             "doc/man3/BIO_s_core.pod"
         ],
+        "doc/man/man3/BIO_s_datagram.3" => [
+            "doc/man3/BIO_s_datagram.pod"
+        ],
         "doc/man/man3/BIO_s_fd.3" => [
             "doc/man3/BIO_s_fd.pod"
         ],
@@ -13750,6 +13880,9 @@ our %unified_info = (
         "doc/man/man3/ECDSA_SIG_new.3" => [
             "doc/man3/ECDSA_SIG_new.pod"
         ],
+        "doc/man/man3/ECDSA_sign.3" => [
+            "doc/man3/ECDSA_sign.pod"
+        ],
         "doc/man/man3/ECPKParameters_print.3" => [
             "doc/man3/ECPKParameters_print.pod"
         ],
@@ -13875,6 +14008,9 @@ our %unified_info = (
         ],
         "doc/man/man3/EVP_PKEY_CTX_get0_libctx.3" => [
             "doc/man3/EVP_PKEY_CTX_get0_libctx.pod"
+        ],
+        "doc/man/man3/EVP_PKEY_CTX_get0_pkey.3" => [
+            "doc/man3/EVP_PKEY_CTX_get0_pkey.pod"
         ],
         "doc/man/man3/EVP_PKEY_CTX_new.3" => [
             "doc/man3/EVP_PKEY_CTX_new.pod"
@@ -14128,6 +14264,9 @@ our %unified_info = (
         "doc/man/man3/OPENSSL_fork_prepare.3" => [
             "doc/man3/OPENSSL_fork_prepare.pod"
         ],
+        "doc/man/man3/OPENSSL_gmtime.3" => [
+            "doc/man3/OPENSSL_gmtime.pod"
+        ],
         "doc/man/man3/OPENSSL_hexchar2int.3" => [
             "doc/man3/OPENSSL_hexchar2int.pod"
         ],
@@ -14157,6 +14296,12 @@ our %unified_info = (
         ],
         "doc/man/man3/OPENSSL_strcasecmp.3" => [
             "doc/man3/OPENSSL_strcasecmp.pod"
+        ],
+        "doc/man/man3/OSSL_ALGORITHM.3" => [
+            "doc/man3/OSSL_ALGORITHM.pod"
+        ],
+        "doc/man/man3/OSSL_CALLBACK.3" => [
+            "doc/man3/OSSL_CALLBACK.pod"
         ],
         "doc/man/man3/OSSL_CMP_CTX_new.3" => [
             "doc/man3/OSSL_CMP_CTX_new.pod"
@@ -14218,6 +14363,9 @@ our %unified_info = (
         "doc/man/man3/OSSL_DECODER_from_bio.3" => [
             "doc/man3/OSSL_DECODER_from_bio.pod"
         ],
+        "doc/man/man3/OSSL_DISPATCH.3" => [
+            "doc/man3/OSSL_DISPATCH.pod"
+        ],
         "doc/man/man3/OSSL_ENCODER.3" => [
             "doc/man3/OSSL_ENCODER.pod"
         ],
@@ -14241,6 +14389,9 @@ our %unified_info = (
         ],
         "doc/man/man3/OSSL_HTTP_transfer.3" => [
             "doc/man3/OSSL_HTTP_transfer.pod"
+        ],
+        "doc/man/man3/OSSL_ITEM.3" => [
+            "doc/man3/OSSL_ITEM.pod"
         ],
         "doc/man/man3/OSSL_LIB_CTX.3" => [
             "doc/man3/OSSL_LIB_CTX.pod"
@@ -15154,6 +15305,9 @@ our %unified_info = (
         "doc/man/man5/x509v3_config.5" => [
             "doc/man5/x509v3_config.pod"
         ],
+        "doc/man/man7/EVP_ASYM_CIPHER-RSA.7" => [
+            "doc/man7/EVP_ASYM_CIPHER-RSA.pod"
+        ],
         "doc/man/man7/EVP_ASYM_CIPHER-SM2.7" => [
             "doc/man7/EVP_ASYM_CIPHER-SM2.pod"
         ],
@@ -15180,6 +15334,9 @@ our %unified_info = (
         ],
         "doc/man/man7/EVP_CIPHER-IDEA.7" => [
             "doc/man7/EVP_CIPHER-IDEA.pod"
+        ],
+        "doc/man/man7/EVP_CIPHER-NULL.7" => [
+            "doc/man7/EVP_CIPHER-NULL.pod"
         ],
         "doc/man/man7/EVP_CIPHER-RC2.7" => [
             "doc/man7/EVP_CIPHER-RC2.pod"
@@ -15288,6 +15445,9 @@ our %unified_info = (
         ],
         "doc/man/man7/EVP_MD-MDC2.7" => [
             "doc/man7/EVP_MD-MDC2.pod"
+        ],
+        "doc/man/man7/EVP_MD-NULL.7" => [
+            "doc/man7/EVP_MD-NULL.pod"
         ],
         "doc/man/man7/EVP_MD-RIPEMD160.7" => [
             "doc/man7/EVP_MD-RIPEMD160.pod"
@@ -16242,6 +16402,7 @@ our %unified_info = (
             "doc/html/man3/BIO_s_bio.html",
             "doc/html/man3/BIO_s_connect.html",
             "doc/html/man3/BIO_s_core.html",
+            "doc/html/man3/BIO_s_datagram.html",
             "doc/html/man3/BIO_s_fd.html",
             "doc/html/man3/BIO_s_file.html",
             "doc/html/man3/BIO_s_mem.html",
@@ -16327,6 +16488,7 @@ our %unified_info = (
             "doc/html/man3/DTLS_set_timer_cb.html",
             "doc/html/man3/DTLSv1_listen.html",
             "doc/html/man3/ECDSA_SIG_new.html",
+            "doc/html/man3/ECDSA_sign.html",
             "doc/html/man3/ECPKParameters_print.html",
             "doc/html/man3/EC_GFp_simple_method.html",
             "doc/html/man3/EC_GROUP_copy.html",
@@ -16369,6 +16531,7 @@ our %unified_info = (
             "doc/html/man3/EVP_PKEY_ASN1_METHOD.html",
             "doc/html/man3/EVP_PKEY_CTX_ctrl.html",
             "doc/html/man3/EVP_PKEY_CTX_get0_libctx.html",
+            "doc/html/man3/EVP_PKEY_CTX_get0_pkey.html",
             "doc/html/man3/EVP_PKEY_CTX_new.html",
             "doc/html/man3/EVP_PKEY_CTX_set1_pbe_pass.html",
             "doc/html/man3/EVP_PKEY_CTX_set_hkdf_md.html",
@@ -16453,6 +16616,7 @@ our %unified_info = (
             "doc/html/man3/OPENSSL_LH_stats.html",
             "doc/html/man3/OPENSSL_config.html",
             "doc/html/man3/OPENSSL_fork_prepare.html",
+            "doc/html/man3/OPENSSL_gmtime.html",
             "doc/html/man3/OPENSSL_hexchar2int.html",
             "doc/html/man3/OPENSSL_ia32cap.html",
             "doc/html/man3/OPENSSL_init_crypto.html",
@@ -16463,6 +16627,8 @@ our %unified_info = (
             "doc/html/man3/OPENSSL_s390xcap.html",
             "doc/html/man3/OPENSSL_secure_malloc.html",
             "doc/html/man3/OPENSSL_strcasecmp.html",
+            "doc/html/man3/OSSL_ALGORITHM.html",
+            "doc/html/man3/OSSL_CALLBACK.html",
             "doc/html/man3/OSSL_CMP_CTX_new.html",
             "doc/html/man3/OSSL_CMP_HDR_get0_transactionID.html",
             "doc/html/man3/OSSL_CMP_ITAV_set0.html",
@@ -16483,6 +16649,7 @@ our %unified_info = (
             "doc/html/man3/OSSL_DECODER_CTX.html",
             "doc/html/man3/OSSL_DECODER_CTX_new_for_pkey.html",
             "doc/html/man3/OSSL_DECODER_from_bio.html",
+            "doc/html/man3/OSSL_DISPATCH.html",
             "doc/html/man3/OSSL_ENCODER.html",
             "doc/html/man3/OSSL_ENCODER_CTX.html",
             "doc/html/man3/OSSL_ENCODER_CTX_new_for_pkey.html",
@@ -16491,6 +16658,7 @@ our %unified_info = (
             "doc/html/man3/OSSL_HTTP_REQ_CTX.html",
             "doc/html/man3/OSSL_HTTP_parse_url.html",
             "doc/html/man3/OSSL_HTTP_transfer.html",
+            "doc/html/man3/OSSL_ITEM.html",
             "doc/html/man3/OSSL_LIB_CTX.html",
             "doc/html/man3/OSSL_PARAM.html",
             "doc/html/man3/OSSL_PARAM_BLD.html",
@@ -16799,6 +16967,7 @@ our %unified_info = (
             "doc/html/man5/x509v3_config.html"
         ],
         "man7" => [
+            "doc/html/man7/EVP_ASYM_CIPHER-RSA.html",
             "doc/html/man7/EVP_ASYM_CIPHER-SM2.html",
             "doc/html/man7/EVP_CIPHER-AES.html",
             "doc/html/man7/EVP_CIPHER-ARIA.html",
@@ -16808,6 +16977,7 @@ our %unified_info = (
             "doc/html/man7/EVP_CIPHER-CHACHA.html",
             "doc/html/man7/EVP_CIPHER-DES.html",
             "doc/html/man7/EVP_CIPHER-IDEA.html",
+            "doc/html/man7/EVP_CIPHER-NULL.html",
             "doc/html/man7/EVP_CIPHER-RC2.html",
             "doc/html/man7/EVP_CIPHER-RC4.html",
             "doc/html/man7/EVP_CIPHER-RC5.html",
@@ -16844,6 +17014,7 @@ our %unified_info = (
             "doc/html/man7/EVP_MD-MD5-SHA1.html",
             "doc/html/man7/EVP_MD-MD5.html",
             "doc/html/man7/EVP_MD-MDC2.html",
+            "doc/html/man7/EVP_MD-NULL.html",
             "doc/html/man7/EVP_MD-RIPEMD160.html",
             "doc/html/man7/EVP_MD-SHA1.html",
             "doc/html/man7/EVP_MD-SHA2.html",
@@ -18558,12 +18729,21 @@ our %unified_info = (
             "include",
             "apps/include"
         ],
+        "test/ext_internal_test" => [
+            ".",
+            "include",
+            "apps/include"
+        ],
         "test/fatalerrtest" => [
             "include",
             "apps/include"
         ],
         "test/ffc_internal_test" => [
             ".",
+            "include",
+            "apps/include"
+        ],
+        "test/fips_version_test" => [
             "include",
             "apps/include"
         ],
@@ -18752,6 +18932,10 @@ our %unified_info = (
             "include",
             "apps/include"
         ],
+        "test/nodefltctxtest" => [
+            "include",
+            "apps/include"
+        ],
         "test/ocspapitest" => [
             "include",
             "apps/include"
@@ -18856,6 +19040,10 @@ our %unified_info = (
             "include",
             "apps/include",
             "."
+        ],
+        "test/punycode_test" => [
+            "include",
+            "apps/include"
         ],
         "test/rand_status_test" => [
             "include",
@@ -19009,6 +19197,11 @@ our %unified_info = (
             "apps/include"
         ],
         "test/tls13encryptiontest" => [
+            ".",
+            "include",
+            "apps/include"
+        ],
+        "test/trace_api_test" => [
             ".",
             "include",
             "apps/include"
@@ -19192,6 +19385,7 @@ our %unified_info = (
             "doc/man/man3/BIO_s_bio.3",
             "doc/man/man3/BIO_s_connect.3",
             "doc/man/man3/BIO_s_core.3",
+            "doc/man/man3/BIO_s_datagram.3",
             "doc/man/man3/BIO_s_fd.3",
             "doc/man/man3/BIO_s_file.3",
             "doc/man/man3/BIO_s_mem.3",
@@ -19277,6 +19471,7 @@ our %unified_info = (
             "doc/man/man3/DTLS_set_timer_cb.3",
             "doc/man/man3/DTLSv1_listen.3",
             "doc/man/man3/ECDSA_SIG_new.3",
+            "doc/man/man3/ECDSA_sign.3",
             "doc/man/man3/ECPKParameters_print.3",
             "doc/man/man3/EC_GFp_simple_method.3",
             "doc/man/man3/EC_GROUP_copy.3",
@@ -19319,6 +19514,7 @@ our %unified_info = (
             "doc/man/man3/EVP_PKEY_ASN1_METHOD.3",
             "doc/man/man3/EVP_PKEY_CTX_ctrl.3",
             "doc/man/man3/EVP_PKEY_CTX_get0_libctx.3",
+            "doc/man/man3/EVP_PKEY_CTX_get0_pkey.3",
             "doc/man/man3/EVP_PKEY_CTX_new.3",
             "doc/man/man3/EVP_PKEY_CTX_set1_pbe_pass.3",
             "doc/man/man3/EVP_PKEY_CTX_set_hkdf_md.3",
@@ -19403,6 +19599,7 @@ our %unified_info = (
             "doc/man/man3/OPENSSL_LH_stats.3",
             "doc/man/man3/OPENSSL_config.3",
             "doc/man/man3/OPENSSL_fork_prepare.3",
+            "doc/man/man3/OPENSSL_gmtime.3",
             "doc/man/man3/OPENSSL_hexchar2int.3",
             "doc/man/man3/OPENSSL_ia32cap.3",
             "doc/man/man3/OPENSSL_init_crypto.3",
@@ -19413,6 +19610,8 @@ our %unified_info = (
             "doc/man/man3/OPENSSL_s390xcap.3",
             "doc/man/man3/OPENSSL_secure_malloc.3",
             "doc/man/man3/OPENSSL_strcasecmp.3",
+            "doc/man/man3/OSSL_ALGORITHM.3",
+            "doc/man/man3/OSSL_CALLBACK.3",
             "doc/man/man3/OSSL_CMP_CTX_new.3",
             "doc/man/man3/OSSL_CMP_HDR_get0_transactionID.3",
             "doc/man/man3/OSSL_CMP_ITAV_set0.3",
@@ -19433,6 +19632,7 @@ our %unified_info = (
             "doc/man/man3/OSSL_DECODER_CTX.3",
             "doc/man/man3/OSSL_DECODER_CTX_new_for_pkey.3",
             "doc/man/man3/OSSL_DECODER_from_bio.3",
+            "doc/man/man3/OSSL_DISPATCH.3",
             "doc/man/man3/OSSL_ENCODER.3",
             "doc/man/man3/OSSL_ENCODER_CTX.3",
             "doc/man/man3/OSSL_ENCODER_CTX_new_for_pkey.3",
@@ -19441,6 +19641,7 @@ our %unified_info = (
             "doc/man/man3/OSSL_HTTP_REQ_CTX.3",
             "doc/man/man3/OSSL_HTTP_parse_url.3",
             "doc/man/man3/OSSL_HTTP_transfer.3",
+            "doc/man/man3/OSSL_ITEM.3",
             "doc/man/man3/OSSL_LIB_CTX.3",
             "doc/man/man3/OSSL_PARAM.3",
             "doc/man/man3/OSSL_PARAM_BLD.3",
@@ -19749,6 +19950,7 @@ our %unified_info = (
             "doc/man/man5/x509v3_config.5"
         ],
         "man7" => [
+            "doc/man/man7/EVP_ASYM_CIPHER-RSA.7",
             "doc/man/man7/EVP_ASYM_CIPHER-SM2.7",
             "doc/man/man7/EVP_CIPHER-AES.7",
             "doc/man/man7/EVP_CIPHER-ARIA.7",
@@ -19758,6 +19960,7 @@ our %unified_info = (
             "doc/man/man7/EVP_CIPHER-CHACHA.7",
             "doc/man/man7/EVP_CIPHER-DES.7",
             "doc/man/man7/EVP_CIPHER-IDEA.7",
+            "doc/man/man7/EVP_CIPHER-NULL.7",
             "doc/man/man7/EVP_CIPHER-RC2.7",
             "doc/man/man7/EVP_CIPHER-RC4.7",
             "doc/man/man7/EVP_CIPHER-RC5.7",
@@ -19794,6 +19997,7 @@ our %unified_info = (
             "doc/man/man7/EVP_MD-MD5-SHA1.7",
             "doc/man/man7/EVP_MD-MD5.7",
             "doc/man/man7/EVP_MD-MDC2.7",
+            "doc/man/man7/EVP_MD-NULL.7",
             "doc/man/man7/EVP_MD-RIPEMD160.7",
             "doc/man/man7/EVP_MD-SHA1.7",
             "doc/man/man7/EVP_MD-SHA2.7",
@@ -20041,8 +20245,10 @@ our %unified_info = (
         "test/evp_test",
         "test/exdatatest",
         "test/exptest",
+        "test/ext_internal_test",
         "test/fatalerrtest",
         "test/ffc_internal_test",
+        "test/fips_version_test",
         "test/gmdifftest",
         "test/hexstr_test",
         "test/hmactest",
@@ -20057,6 +20263,7 @@ our %unified_info = (
         "test/memleaktest",
         "test/modes_internal_test",
         "test/namemap_internal_test",
+        "test/nodefltctxtest",
         "test/ocspapitest",
         "test/ossl_store_test",
         "test/packettest",
@@ -20081,6 +20288,7 @@ our %unified_info = (
         "test/provider_pkey_test",
         "test/provider_status_test",
         "test/provider_test",
+        "test/punycode_test",
         "test/rand_status_test",
         "test/rand_test",
         "test/rc2test",
@@ -20118,6 +20326,7 @@ our %unified_info = (
         "test/time_offset_test",
         "test/tls13ccstest",
         "test/tls13encryptiontest",
+        "test/trace_api_test",
         "test/uitest",
         "test/upcallstest",
         "test/user_property_test",
@@ -20986,9 +21195,6 @@ our %unified_info = (
         "crypto/bn/libfips-lib-bn_word.o" => [
             "crypto/bn/bn_word.c"
         ],
-        "crypto/bn/liblegacy-lib-bn_asm.o" => [
-            "crypto/bn/bn_asm.c"
-        ],
         "crypto/buffer/libcrypto-lib-buf_err.o" => [
             "crypto/buffer/buf_err.c"
         ],
@@ -21264,12 +21470,6 @@ our %unified_info = (
         ],
         "crypto/des/libfips-lib-set_key.o" => [
             "crypto/des/set_key.c"
-        ],
-        "crypto/des/liblegacy-lib-des_enc.o" => [
-            "crypto/des/des_enc.c"
-        ],
-        "crypto/des/liblegacy-lib-fcrypt_b.o" => [
-            "crypto/des/fcrypt_b.c"
         ],
         "crypto/dh/libcrypto-lib-dh_ameth.o" => [
             "crypto/dh/dh_ameth.c"
@@ -22379,15 +22579,6 @@ our %unified_info = (
             "crypto/md5/md5_one.c"
         ],
         "crypto/md5/libcrypto-lib-md5_sha1.o" => [
-            "crypto/md5/md5_sha1.c"
-        ],
-        "crypto/md5/liblegacy-lib-md5_dgst.o" => [
-            "crypto/md5/md5_dgst.c"
-        ],
-        "crypto/md5/liblegacy-lib-md5_one.o" => [
-            "crypto/md5/md5_one.c"
-        ],
-        "crypto/md5/liblegacy-lib-md5_sha1.o" => [
             "crypto/md5/md5_sha1.c"
         ],
         "crypto/mdc2/libcrypto-lib-mdc2_one.o" => [
@@ -24547,6 +24738,9 @@ our %unified_info = (
         "providers/implementations/digests/libdefault-lib-null_prov.o" => [
             "providers/implementations/digests/null_prov.c"
         ],
+        "providers/implementations/digests/libdefault-lib-ripemd_prov.o" => [
+            "providers/implementations/digests/ripemd_prov.c"
+        ],
         "providers/implementations/digests/libdefault-lib-sha2_prov.o" => [
             "providers/implementations/digests/sha2_prov.c"
         ],
@@ -24973,6 +25167,7 @@ our %unified_info = (
             "providers/implementations/digests/libdefault-lib-md5_prov.o",
             "providers/implementations/digests/libdefault-lib-md5_sha1_prov.o",
             "providers/implementations/digests/libdefault-lib-null_prov.o",
+            "providers/implementations/digests/libdefault-lib-ripemd_prov.o",
             "providers/implementations/digests/libdefault-lib-sha2_prov.o",
             "providers/implementations/digests/libdefault-lib-sha3_prov.o",
             "providers/implementations/digests/libdefault-lib-sm3_prov.o",
@@ -25296,12 +25491,6 @@ our %unified_info = (
             "providers/prov_running.c"
         ],
         "providers/liblegacy.a" => [
-            "crypto/bn/liblegacy-lib-bn_asm.o",
-            "crypto/des/liblegacy-lib-des_enc.o",
-            "crypto/des/liblegacy-lib-fcrypt_b.o",
-            "crypto/md5/liblegacy-lib-md5_dgst.o",
-            "crypto/md5/liblegacy-lib-md5_one.o",
-            "crypto/md5/liblegacy-lib-md5_sha1.o",
             "providers/implementations/ciphers/liblegacy-lib-cipher_blowfish.o",
             "providers/implementations/ciphers/liblegacy-lib-cipher_blowfish_hw.o",
             "providers/implementations/ciphers/liblegacy-lib-cipher_cast5.o",
@@ -26380,6 +26569,12 @@ our %unified_info = (
         "test/exptest-bin-exptest.o" => [
             "test/exptest.c"
         ],
+        "test/ext_internal_test" => [
+            "test/ext_internal_test-bin-ext_internal_test.o"
+        ],
+        "test/ext_internal_test-bin-ext_internal_test.o" => [
+            "test/ext_internal_test.c"
+        ],
         "test/fatalerrtest" => [
             "test/fatalerrtest-bin-fatalerrtest.o",
             "test/helpers/fatalerrtest-bin-ssltestlib.o"
@@ -26392,6 +26587,12 @@ our %unified_info = (
         ],
         "test/ffc_internal_test-bin-ffc_internal_test.o" => [
             "test/ffc_internal_test.c"
+        ],
+        "test/fips_version_test" => [
+            "test/fips_version_test-bin-fips_version_test.o"
+        ],
+        "test/fips_version_test-bin-fips_version_test.o" => [
+            "test/fips_version_test.c"
         ],
         "test/gmdifftest" => [
             "test/gmdifftest-bin-gmdifftest.o"
@@ -26576,6 +26777,12 @@ our %unified_info = (
         "test/namemap_internal_test-bin-namemap_internal_test.o" => [
             "test/namemap_internal_test.c"
         ],
+        "test/nodefltctxtest" => [
+            "test/nodefltctxtest-bin-nodefltctxtest.o"
+        ],
+        "test/nodefltctxtest-bin-nodefltctxtest.o" => [
+            "test/nodefltctxtest.c"
+        ],
         "test/ocspapitest" => [
             "test/ocspapitest-bin-ocspapitest.o"
         ],
@@ -26739,6 +26946,12 @@ our %unified_info = (
         ],
         "test/provider_test-bin-provider_test.o" => [
             "test/provider_test.c"
+        ],
+        "test/punycode_test" => [
+            "test/punycode_test-bin-punycode_test.o"
+        ],
+        "test/punycode_test-bin-punycode_test.o" => [
+            "test/punycode_test.c"
         ],
         "test/rand_status_test" => [
             "test/rand_status_test-bin-rand_status_test.o"
@@ -27032,6 +27245,12 @@ our %unified_info = (
         "test/tls13encryptiontest-bin-tls13encryptiontest.o" => [
             "test/tls13encryptiontest.c"
         ],
+        "test/trace_api_test" => [
+            "test/trace_api_test-bin-trace_api_test.o"
+        ],
+        "test/trace_api_test-bin-trace_api_test.o" => [
+            "test/trace_api_test.c"
+        ],
         "test/uitest" => [
             "apps/lib/uitest-bin-apps_ui.o",
             "test/uitest-bin-uitest.o"
@@ -27262,8 +27481,8 @@ unless (caller) {
     use File::Copy;
     use Pod::Usage;
 
-    use lib '/home/rafaelgss/repos/os/node/deps/openssl/openssl/util/perl';
-    use OpenSSL::fallback '/home/rafaelgss/repos/os/node/deps/openssl/openssl/external/perl/MODULES.txt';
+    use lib '/home/runner/work/node/node/deps/openssl/openssl/util/perl';
+    use OpenSSL::fallback '/home/runner/work/node/node/deps/openssl/openssl/external/perl/MODULES.txt';
 
     my $here = dirname($0);
 
@@ -27272,7 +27491,7 @@ unless (caller) {
         # We do that in two steps, where the first step emits perl
         # snipets.
 
-        my $buildfile = $target{build_file};
+        my $buildfile = $config{build_file};
         my $buildfile_template = "$buildfile.in";
         my @autowarntext = (
             'WARNING: do not edit!',
@@ -27290,7 +27509,7 @@ unless (caller) {
             );
 
         use lib '.';
-        use lib '/home/rafaelgss/repos/os/node/deps/openssl/openssl/Configurations';
+        use lib '/home/runner/work/node/node/deps/openssl/openssl/Configurations';
         use gentemplate;
 
         open my $buildfile_template_fh, ">$buildfile_template"
@@ -27307,8 +27526,8 @@ unless (caller) {
 
         my $prepend = <<'_____';
 use File::Spec::Functions;
-use lib '/home/rafaelgss/repos/os/node/deps/openssl/openssl/util/perl';
-use lib '/home/rafaelgss/repos/os/node/deps/openssl/openssl/Configurations';
+use lib '/home/runner/work/node/node/deps/openssl/openssl/util/perl';
+use lib '/home/runner/work/node/node/deps/openssl/openssl/Configurations';
 use lib '.';
 use platform;
 _____

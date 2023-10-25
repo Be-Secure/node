@@ -195,8 +195,9 @@ class StreamTester {
     Isolate* i_isolate = reinterpret_cast<i::Isolate*>(isolate);
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
+    WasmFeatures features = WasmFeatures::FromIsolate(i_isolate);
     stream_ = GetWasmEngine()->StartStreamingCompilation(
-        i_isolate, WasmFeatures::All(), v8::Utils::OpenHandle(*context),
+        i_isolate, features, v8::Utils::OpenHandle(*context),
         "WebAssembly.compileStreaming()",
         std::make_shared<TestResolver>(i_isolate, &state_, &error_message_,
                                        &module_object_));
@@ -324,7 +325,7 @@ ZoneBuffer GetValidCompiledModuleBytes(v8::Isolate* isolate, Zone* zone,
   }
   while (true) {
     WasmCodeRefScope code_ref_scope;
-    std::vector<WasmCode*> all_code = native_module->SnapshotCodeTable();
+    std::vector<WasmCode*> all_code = native_module->SnapshotCodeTable().first;
     if (std::all_of(all_code.begin(), all_code.end(), [](const WasmCode* code) {
           return code && code->tier() == ExecutionTier::kTurbofan;
         })) {
@@ -336,7 +337,7 @@ ZoneBuffer GetValidCompiledModuleBytes(v8::Isolate* isolate, Zone* zone,
                           ReadOnlyRoots{i_isolate}.undefined_value_handle(), 0,
                           nullptr)
               .ToHandleChecked();
-      CHECK(return_value->IsSmi());
+      CHECK(IsSmi(*return_value));
       CHECK_EQ(0, Smi::cast(*return_value).value());
     }
     tester.RunCompilerTasks();
@@ -345,7 +346,7 @@ ZoneBuffer GetValidCompiledModuleBytes(v8::Isolate* isolate, Zone* zone,
   // Serialize the NativeModule.
   i::wasm::WasmSerializer serializer(native_module);
   size_t size = serializer.GetSerializedNativeModuleSize();
-  std::vector<byte> buffer(size);
+  std::vector<uint8_t> buffer(size);
   CHECK(serializer.SerializeNativeModule(base::VectorOf(buffer)));
   ZoneBuffer result(zone, size);
   result.write(buffer.data(), size);
@@ -381,13 +382,10 @@ STREAM_TEST(TestAllBytesArriveAOTCompilerFinishesFirst) {
   CHECK(tester.IsPromiseFulfilled());
 }
 
-size_t GetFunctionOffset(i::Isolate* isolate, const uint8_t* buffer,
-                         size_t size, size_t index) {
-  ModuleResult result = DecodeWasmModule(
-      WasmFeatures::All(), buffer, buffer + size, false,
-      ModuleOrigin::kWasmOrigin, isolate->counters(),
-      isolate->metrics_recorder(), v8::metrics::Recorder::ContextId::Empty(),
-      DecodingMethod::kSyncStream, GetWasmEngine()->allocator());
+size_t GetFunctionOffset(i::Isolate* isolate, base::Vector<const uint8_t> bytes,
+                         size_t index) {
+  ModuleResult result = DecodeWasmModule(WasmFeatures::All(), bytes, false,
+                                         ModuleOrigin::kWasmOrigin);
   CHECK(result.ok());
   const WasmFunction* func = &result.value()->functions[index];
   return func->code.offset();
@@ -400,8 +398,7 @@ STREAM_TEST(TestCutAfterOneFunctionStreamFinishesFirst) {
   ZoneBuffer buffer = GetValidModuleBytes(tester.zone());
 
   Isolate* i_isolate = reinterpret_cast<i::Isolate*>(isolate);
-  size_t offset =
-      GetFunctionOffset(i_isolate, buffer.begin(), buffer.size(), 1);
+  size_t offset = GetFunctionOffset(i_isolate, base::VectorOf(buffer), 1);
   tester.OnBytesReceived(buffer.begin(), offset);
   tester.RunCompilerTasks();
   CHECK(tester.IsPromisePending());
@@ -419,8 +416,7 @@ STREAM_TEST(TestCutAfterOneFunctionCompilerFinishesFirst) {
   ZoneBuffer buffer = GetValidModuleBytes(tester.zone());
 
   Isolate* i_isolate = reinterpret_cast<i::Isolate*>(isolate);
-  size_t offset =
-      GetFunctionOffset(i_isolate, buffer.begin(), buffer.size(), 1);
+  size_t offset = GetFunctionOffset(i_isolate, base::VectorOf(buffer), 1);
   tester.OnBytesReceived(buffer.begin(), offset);
   tester.RunCompilerTasks();
   CHECK(tester.IsPromisePending());
@@ -1253,9 +1249,8 @@ STREAM_TEST(TestIncrementalCaching) {
   Isolate* i_isolate = reinterpret_cast<i::Isolate*>(isolate);
   Handle<Script> script = GetWasmEngine()->GetOrCreateScript(
       i_isolate, tester.shared_native_module(), kNoSourceUrl);
-  Handle<FixedArray> export_wrappers = i_isolate->factory()->NewFixedArray(3);
-  Handle<WasmModuleObject> module_object = WasmModuleObject::New(
-      i_isolate, tester.shared_native_module(), script, export_wrappers);
+  Handle<WasmModuleObject> module_object =
+      WasmModuleObject::New(i_isolate, tester.shared_native_module(), script);
   ErrorThrower thrower(i_isolate, "Instantiation");
   // We instantiated before, so the second instantiation must also succeed:
   Handle<WasmInstanceObject> instance =
@@ -1350,7 +1345,7 @@ STREAM_TEST(TestDeserializationFails) {
   ZoneBuffer module_bytes =
       GetValidCompiledModuleBytes(isolate, tester.zone(), wire_bytes);
   // corrupt header
-  byte first_byte = *module_bytes.begin();
+  uint8_t first_byte = *module_bytes.begin();
   module_bytes.patch_u8(0, first_byte + 1);
   tester.SetCompiledModuleBytes(base::VectorOf(module_bytes));
   tester.OnBytesReceived(wire_bytes.begin(), wire_bytes.size());
@@ -1607,7 +1602,7 @@ STREAM_TEST(TierDownWithError) {
     builder.WriteTo(&buffer);
   }
 
-  GetWasmEngine()->TierDownAllModulesPerIsolate(i_isolate);
+  GetWasmEngine()->EnterDebuggingForIsolate(i_isolate);
 
   tester.OnBytesReceived(buffer.begin(), buffer.size());
   tester.FinishStream();

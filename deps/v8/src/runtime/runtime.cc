@@ -193,7 +193,7 @@ bool Runtime::MayAllocate(FunctionId id) {
 }
 
 bool Runtime::IsAllowListedForFuzzing(FunctionId id) {
-  CHECK(FLAG_fuzzing);
+  CHECK(v8_flags.fuzzing);
   switch (id) {
     // Runtime functions allowlisted for all fuzzers. Only add functions that
     // help increase coverage.
@@ -219,13 +219,28 @@ bool Runtime::IsAllowListedForFuzzing(FunctionId id) {
     case Runtime::kGetOptimizationStatus:
     case Runtime::kHeapObjectVerify:
     case Runtime::kIsBeingInterpreted:
-      return !FLAG_allow_natives_for_differential_fuzzing;
+      return !v8_flags.allow_natives_for_differential_fuzzing;
     case Runtime::kVerifyType:
-      return !FLAG_allow_natives_for_differential_fuzzing &&
-             !FLAG_concurrent_recompilation;
+      return !v8_flags.allow_natives_for_differential_fuzzing &&
+             !v8_flags.concurrent_recompilation;
     case Runtime::kBaselineOsr:
     case Runtime::kCompileBaseline:
       return ENABLE_SPARKPLUG;
+    default:
+      return false;
+  }
+}
+
+bool Runtime::SwitchToTheCentralStackForTarget(FunctionId id) {
+  // Runtime functions called from Wasm directly or
+  // from Wasm runtime stubs should execute on the central stack.
+  switch (id) {
+#if V8_ENABLE_WEBASSEMBLY
+#define WASM_CASE(Name, ...) case Runtime::k##Name:
+    FOR_EACH_INTRINSIC_WASM(WASM_CASE, WASM_CASE)
+#undef WASM_CASE
+    return true;
+#endif  // V8_ENABLE_WEBASSEMBLY
     default:
       return false;
   }

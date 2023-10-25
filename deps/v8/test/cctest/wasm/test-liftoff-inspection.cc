@@ -21,12 +21,11 @@ class LiftoffCompileEnvironment {
       : isolate_(CcTest::InitIsolateOnce()),
         handle_scope_(isolate_),
         zone_(isolate_->allocator(), ZONE_NAME),
-        wasm_runner_(nullptr, TestExecutionTier::kLiftoff, 0,
-                     kRuntimeExceptionSupport) {
+        wasm_runner_(nullptr, kWasmOrigin, TestExecutionTier::kLiftoff, 0) {
     // Add a table of length 1, for indirect calls.
     wasm_runner_.builder().AddIndirectFunctionTable(nullptr, 1);
     // Set tiered down such that we generate debugging code.
-    wasm_runner_.builder().SetTieredDown();
+    wasm_runner_.builder().SetDebugState();
   }
 
   struct TestFunction {
@@ -118,8 +117,8 @@ class LiftoffCompileEnvironment {
 
   FunctionSig* AddSig(std::initializer_list<ValueType> return_types,
                       std::initializer_list<ValueType> param_types) {
-    ValueType* storage =
-        zone_.NewArray<ValueType>(return_types.size() + param_types.size());
+    ValueType* storage = zone_.AllocateArray<ValueType>(return_types.size() +
+                                                        param_types.size());
     std::copy(return_types.begin(), return_types.end(), storage);
     std::copy(param_types.begin(), param_types.end(),
               storage + return_types.size());
@@ -135,7 +134,7 @@ class LiftoffCompileEnvironment {
     // Compile the function so we can get the WasmCode* which is later used to
     // generate the debug side table lazily.
     auto& func_compiler = wasm_runner_.NewFunction(sig, "f");
-    func_compiler.Build(function_bytes.begin(), function_bytes.end());
+    func_compiler.Build(base::VectorOf(function_bytes));
 
     WasmCode* code =
         wasm_runner_.builder().GetFunctionCode(func_compiler.function_index());
@@ -435,7 +434,6 @@ TEST(Liftoff_breakpoint_simple) {
 }
 
 TEST(Liftoff_debug_side_table_catch_all) {
-  EXPERIMENTAL_FLAG_SCOPE(eh);
   LiftoffCompileEnvironment env;
   TestSignatures sigs;
   int ex = env.builder()->AddException(sigs.v_v());
@@ -452,17 +450,16 @@ TEST(Liftoff_debug_side_table_catch_all) {
       {
           // function entry.
           {1, {Register(0, kWasmI32)}},
+          // throw.
+          {2, {Stack(0, kWasmI32), Constant(1, kWasmI32, 0)}},
           // breakpoint.
-          {3,
-           {Stack(0, kWasmI32), Register(1, exception_type),
-            Constant(2, kWasmI32, 1)}},
+          {3, {Register(1, exception_type), Constant(2, kWasmI32, 1)}},
           {1, {}},
       },
       debug_side_table.get());
 }
 
 TEST(Regress1199526) {
-  EXPERIMENTAL_FLAG_SCOPE(eh);
   LiftoffCompileEnvironment env;
   ValueType exception_type = ValueType::Ref(HeapType::kAny);
   auto debug_side_table = env.GenerateDebugSideTable(

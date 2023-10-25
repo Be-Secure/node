@@ -19,7 +19,7 @@ class JavaScriptFrame;
 class CommonFrame;
 class WasmFrame;
 
-class FrameInspector {
+class V8_EXPORT_PRIVATE FrameInspector {
  public:
   FrameInspector(CommonFrame* frame, int inlined_frame_index, Isolate* isolate);
   FrameInspector(const FrameInspector&) = delete;
@@ -70,7 +70,8 @@ class RedirectActiveFunctions : public ThreadVisitor {
     kUseDebugBytecode,
   };
 
-  explicit RedirectActiveFunctions(SharedFunctionInfo shared, Mode mode);
+  RedirectActiveFunctions(Isolate* isolate, Tagged<SharedFunctionInfo> shared,
+                          Mode mode);
 
   void VisitThread(Isolate* isolate, ThreadLocalTop* top) override;
 

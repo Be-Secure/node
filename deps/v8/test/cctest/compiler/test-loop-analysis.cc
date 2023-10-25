@@ -126,7 +126,7 @@ class LoopFinderTester : HandleAndZoneScope {
 
   LoopTree* GetLoopTree() {
     if (loop_tree == nullptr) {
-      if (FLAG_trace_turbo_graph) {
+      if (v8_flags.trace_turbo_graph) {
         StdoutStream{} << AsRPO(graph);
       }
       Zone zone(main_isolate()->allocator(), ZONE_NAME);
@@ -927,7 +927,7 @@ TEST(LaEdgeMatrix3_5) { RunEdgeMatrix3_i(5); }
 
 static void RunManyChainedLoops_i(int count) {
   LoopFinderTester t;
-  Node** nodes = t.zone()->NewArray<Node*>(count * 4);
+  Node** nodes = t.zone()->AllocateArray<Node*>(count * 4);
   Node* k11 = t.jsgraph.Int32Constant(11);
   Node* k12 = t.jsgraph.Int32Constant(12);
   Node* last = t.start;
@@ -963,7 +963,7 @@ static void RunManyChainedLoops_i(int count) {
 
 static void RunManyNestedLoops_i(int count) {
   LoopFinderTester t;
-  Node** nodes = t.zone()->NewArray<Node*>(count * 5);
+  Node** nodes = t.zone()->AllocateArray<Node*>(count * 5);
   Node* k11 = t.jsgraph.Int32Constant(11);
   Node* k12 = t.jsgraph.Int32Constant(12);
   Node* outer = nullptr;

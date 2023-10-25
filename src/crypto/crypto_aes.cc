@@ -381,7 +381,7 @@ bool ValidateAuthTag(
     AESCipherConfig* params) {
   switch (cipher_mode) {
     case kWebCryptoCipherDecrypt: {
-      if (!IsAnyByteSource(value)) {
+      if (!IsAnyBufferSource(value)) {
         THROW_ERR_CRYPTO_INVALID_TAG_LENGTH(env);
         return false;
       }
@@ -419,7 +419,7 @@ bool ValidateAdditionalData(
     Local<Value> value,
     AESCipherConfig* params) {
   // Additional Data
-  if (IsAnyByteSource(value)) {
+  if (IsAnyBufferSource(value)) {
     ArrayBufferOrViewContents<char> additional(value);
     if (UNLIKELY(!additional.CheckSizeInt32())) {
       THROW_ERR_OUT_OF_RANGE(env, "additionalData is too big");
@@ -556,7 +556,10 @@ Maybe<bool> AESCipherTraits::AdditionalConfig(
   }
 
   params->cipher = EVP_get_cipherbynid(cipher_nid);
-  CHECK_NOT_NULL(params->cipher);
+  if (params->cipher == nullptr) {
+    THROW_ERR_CRYPTO_UNKNOWN_CIPHER(env);
+    return Nothing<bool>();
+  }
 
   if (params->iv.size() <
       static_cast<size_t>(EVP_CIPHER_iv_length(params->cipher))) {
